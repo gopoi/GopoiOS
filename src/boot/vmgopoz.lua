@@ -1,7 +1,7 @@
 --[[ NON-POSIG
   gopoiOS kernel
   Author: Shan B.
-  Date: 25/04/2015 
+  Date: 2015-04-25
 ]]--
 
 -- Startup shits
