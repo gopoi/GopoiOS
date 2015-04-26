@@ -1,3 +1,3 @@
-# OpenMinecraftOS
+# GopoiOS
 An OpenComputers OS
 
