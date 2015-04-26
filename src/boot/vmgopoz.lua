@@ -5,7 +5,7 @@
 ]]--
 
 -- Startup shits
-
+local kernel = {}
 
 
 -- Basic kernel functions
