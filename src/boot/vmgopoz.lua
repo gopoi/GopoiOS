@@ -9,13 +9,14 @@
 local kernel = {}
 kernel.filesystemFilePath = "/lib/modules/vfs.ko.lua"
 kernel.filesystemName = "vfs"
+
 local success, result 
 
 -- Basic kernel functions
 local baseError = error
---function error(errmsg)
---  baseError("Catastrophic derp Error:" .. tostring(errmsg))
---end 
+function error(errmsg)
+  baseError("-------- Catastrophic derp Error -------- \r\n" .. tostring(errmsg))
+end 
 
 
 -- Parse arguments
@@ -30,23 +31,25 @@ success, result = pcall(fsLambda)
 if not success then
   error("Error while loading fsDriver: " .. tostring(result))
 end 
-kernel.baseFsDriver = result
+fsLambda = nil
+kernel.bootstrapDriver = result
+kernel.rootMountpoint = result.attach(bootargs.root)
 
 -- vfs bootstrap
 function vfsBootstrap(filePath, fileName)
-  local handle, reason = kernel.baseFsDriver.open(filePath)
+  local handle, reason = kernel.rootMountpoint:open(filePath)
   if not handle then
     return nil, reason
   end
   local buffer = ""
   repeat
-    local data, reason = kernel.baseFsDriver.read(handle, math.huge)
+    local data, reason = handle:read(math.huge)
     if not data and reason then
       return nil, reason
     end
     buffer = buffer .. (data or "")
   until not data
-  kernel.baseFsDriver.close(handle)
+  handle:close()
   return load(buffer, "=" .. fileName)
 end
 
@@ -56,10 +59,8 @@ if not success then
   error("Error while loading:" .. kernel.filesystemName .. " :" .. tostring(result)) 
 end
 kernel.filesystem = result
-
-
-
 -- Create virtual filesystem
+
 
 
 

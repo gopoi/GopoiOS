@@ -54,7 +54,6 @@ end
 
 ---- Locate and load kernel Fs driver 
 local reason
-
 if (bootloader.fsDriverFilePath and fsDriverFilePath ~= "") then
   bootloader.fsDriver, reason = bootloader.tryLoad(computer.getBootAddress(), bootloader.fsDriverFilePath, bootloader.fsDriverName)
   if not bootloader.fsDriver then
