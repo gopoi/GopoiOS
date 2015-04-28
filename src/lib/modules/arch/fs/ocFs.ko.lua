@@ -144,9 +144,7 @@ function ocFs.init(device, invoker)
     invoker = component.invoke
   end
   local self = setmetatable({}, ocFs)
-  if not ocFs.isCompatible(device, invoker) then
-    error("Device is not compatible with this driver.")
-  end
+  kernelAssert(ocFs.isCompatible(device, invoker), "Device is not compatible with this driver.")
   self.device = device
   self.invoker = invoker
   return self

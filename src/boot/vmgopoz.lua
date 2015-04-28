@@ -10,36 +10,40 @@
 
 -- Startup shits
 local kernel = {
-  filesystemFilePath = "/lib/modules/vfs.ko.lua",
-  filesystemName = "vfs"
-)
+  vfsModulePath = "/lib/modules/vfs.ko.lua",
+  vfsName = "vfs"
+}
+
 local success, result 
 
--- Basic kernel functions
-local baseError = error
-function error(errmsg)
-  baseError("-------- Catastrophic derp Error -------- \r\n" .. tostring(errmsg))
-end 
+function kernelPanic(...)
+  local text = ""
+  for _, v in pairs(table.pack(...)) do
+    text = text .. v .. "\n"
+  end
+  error("\n-------- Catastrophic Derp occured! --------\nKernel Trace: " .. text .. "-------- End Trace --------\n")
+end
 
+function kernelAssert(condition, ...)
+  if not condition then
+    kernelPanic(...)
+  end
+end
 
 -- Parse arguments
 kernel.bootargs = table.pack(...)[1] -- single table as arg for now
 
 -- Get Fs driver
 local fsLambda = kernel.bootargs.fsDriver
-if not fsLambda then
-  error("Missing kernel boot arg: fsDriver")
-end
+kernelAssert(fsLambda, "Missing kernel boot arg: fsDriver")
 success, result = pcall(fsLambda)
-if not success then
-  error("Error while loading fsDriver: " .. tostring(result))
-end 
-fsLambda = nil
+kernelAssert(success, "Error while loading fsDriver: " .. tostring(result))
 kernel.bootstrapDriver = result
 kernel.rootMountpoint = result.init(kernel.bootargs.root)
+fsLambda = nil
 
 -- vfs bootstrap
-function vfsBootstrap(filePath, fileName)
+local function vfsBootstrap(filePath, fileName)
   local handle, reason = kernel.rootMountpoint:open(filePath)
   if not handle then
     return nil, reason
@@ -57,11 +61,9 @@ function vfsBootstrap(filePath, fileName)
 end
 
 -- Load Filesystem module with the Fs driver
-success, result = pcall(vfsBootstrap(kernel.filesystemFilePath, kernel.filesystemName ))
-if not success then
-  error("Error while loading:" .. kernel.filesystemName .. " :" .. tostring(result)) 
-end
-kernel.filesystem = result()
+success, result = pcall(vfsBootstrap, kernel.vfsModulePath, kernel.vfsName)
+kernelAssert(success, "Error while loading:" .. kernel.vfsName .. " :" .. tostring(result)) 
+kernel.vfs = result()
 -- Create virtual filesystem
 
 
