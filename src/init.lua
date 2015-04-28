@@ -1,21 +1,24 @@
---[[ NON-POSIG/NON-PORTABLE
-  gopoiOS kernel bootstrapper for OpenComputers
-  Non portable
+--[[ POSIG/0.0.1
+  Name: GopoiLoader
+  FullName: gopoiOS kernel bootstrapper for OpenComputers
+  Package: net.gopoi.gopoios
   Author: Shan B.
   Date: 2015-04-25
+  Arch: OpenOS
 ]]--
-local bootloader = {}
-bootloader.version = "0.0.1"
-bootloader.kernelName = "vmgopoz"
-bootloader.kernelFilePath = "/boot/vmgopoz.lua"
-bootloader.fsDriverName = "ocFs"
-bootloader.fsDriverFilePath = "/lib/modules/arch/fs/ocFs.ko.lua"
-bootloader.kernelArgs = {
-  arch = "oc",
-  root = computer.getBootAddress(),
-  locale = unicode,
-  }
-bootloader.invokeHandle = component.invoke
+local bootloader = {
+  version = "0.0.1",
+  kernelName = "vmgopoz",
+  kernelFilePath = "/boot/vmgopoz.lua",
+  fsDriverName = "ocFs",
+  fsDriverFilePath = "/lib/modules/arch/fs/ocFs.ko.lua",
+  kernelArgs = {
+    arch = "oc",
+    root = computer.getBootAddress(),
+    locale = unicode,
+  },
+  invokeHandle = component.invoke
+ }
 
 
 -- Map base components for the bootstrapping process

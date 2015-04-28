@@ -1,7 +1,10 @@
---[[ POSIG/NON-PORTABLE
-  Title: OpenComputers Filesystem Driver
+--[[ POSIG/0.0.1
+  Name: filesystem
+  FullName: OpenComputers Filesystem Driver
+  Package: net.gopoi.gopoios
   Author: Shan B.
   Date: 2015-04-26
+  Arch: OpenOS
 ]]--
 
 

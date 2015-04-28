@@ -1,8 +1,11 @@
---[[ POSIG/PORTABLE
-  Title: gopoiOS virtual filesystem module
+--[[ POSIG/0.0.1
+  Name: vfs
+  FullName: gopoiOS virtual filesystem module
+  Package: net.gopoi.gopoios
   Author: Shan B.
   Credit: OpenComputers openOS Filesystem
   Date: 2015-04-26
+  Arch: Portable
 ]]--
 
 

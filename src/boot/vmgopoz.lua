@@ -1,15 +1,18 @@
---[[ NON-POSIG
-  gopoiOS kernel
+--[[ POSIG/0.0.1
+  Name: vmgopoz
+  FullName: gopoiOS kernel
+  Package: net.gopoi.gopoios
   Author: Shan B.
   Date: 2015-04-25
+  Arch: Portable
 ]]--
 
 
 -- Startup shits
-local kernel = {}
-kernel.filesystemFilePath = "/lib/modules/vfs.ko.lua"
-kernel.filesystemName = "vfs"
-
+local kernel = {
+  filesystemFilePath = "/lib/modules/vfs.ko.lua",
+  filesystemName = "vfs"
+)
 local success, result 
 
 -- Basic kernel functions
