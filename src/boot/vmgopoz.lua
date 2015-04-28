@@ -12,7 +12,7 @@ kernel.vfsName = "vfs"
 
 local success, result 
 
-local function kernelPanic(...)
+function kernelPanic(...)
   local text = ""
   for _, v in pairs(table.pack(...)) do
     text = text .. v .. "\n"
@@ -20,8 +20,8 @@ local function kernelPanic(...)
   error("\n-------- Catastrophic Derp occured! --------\nKernel Trace: " .. text .. "-------- End Trace --------\n")
 end
 
-local function assertKernel(condition, ...)
-  if condition == true then
+function kernelAssert(condition, ...)
+  if not condition then
     kernelPanic(...)
   end
 end
@@ -31,16 +31,12 @@ kernel.bootargs = table.pack(...)[1] -- single table as arg for now
 
 -- Get Fs driver
 local fsLambda = kernel.bootargs.fsDriver
-if not fsLambda then
-  kernelPanic("Missing kernel boot arg: fsDriver")
-end
+kernelAssert(fsLambda, "Missing kernel boot arg: fsDriver")
 success, result = pcall(fsLambda)
-if not success then
-  kernelPanic("Error while loading fsDriver: " .. tostring(result))
-end 
-fsLambda = nil
+kernelAssert(success, "Error while loading fsDriver: " .. tostring(result))
 kernel.bootstrapDriver = result
 kernel.rootMountpoint = result.init(kernel.bootargs.root)
+fsLambda = nil
 
 -- vfs bootstrap
 local function vfsBootstrap(filePath, fileName)
@@ -62,11 +58,8 @@ end
 
 -- Load Filesystem module with the Fs driver
 success, result = pcall(vfsBootstrap, kernel.vfsModulePath, kernel.vfsName)
-if not success then
-  kernelPanic("Error while loading:" .. kernel.vfsName .. " :" .. tostring(result)) 
-end
+kernelAssert(success, "Error while loading:" .. kernel.vfsName .. " :" .. tostring(result)) 
 kernel.vfs = result()
---kernelPanic("dfgdfg")
 -- Create virtual filesystem
 
 
