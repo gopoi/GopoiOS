@@ -20,10 +20,10 @@ end
 
 
 -- Parse arguments
-local bootargs = table.pack(...)[1] -- single table as arg for now
+kernel.bootargs = table.pack(...)[1] -- single table as arg for now
 
 -- Get Fs driver
-local fsLambda = bootargs.fsDriver
+local fsLambda = kernel.bootargs.fsDriver
 if not fsLambda then
   error("Missing kernel boot arg: fsDriver")
 end
@@ -33,7 +33,7 @@ if not success then
 end 
 fsLambda = nil
 kernel.bootstrapDriver = result
-kernel.rootMountpoint = result.attach(bootargs.root)
+kernel.rootMountpoint = result.init(kernel.bootargs.root)
 
 -- vfs bootstrap
 function vfsBootstrap(filePath, fileName)
@@ -58,7 +58,7 @@ success, result = pcall(vfsBootstrap(kernel.filesystemFilePath, kernel.filesyste
 if not success then
   error("Error while loading:" .. kernel.filesystemName .. " :" .. tostring(result)) 
 end
-kernel.filesystem = result
+kernel.filesystem = result()
 -- Create virtual filesystem
 
 
