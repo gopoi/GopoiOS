@@ -10,11 +10,11 @@
 
 
 -- Startup shits
-local kernel = {
+_ENV.kernel = {
   vfsModulePath = "/lib/modules/vfs.ko.lua",
   vfsName = "vfs"
 }
-
+local kernel = _ENV.kernel
 local success, result 
 
 function kernelPanic(...)
@@ -33,6 +33,10 @@ end
 
 -- Parse arguments
 kernel.bootargs = table.pack(...)[1] -- single table as arg for now
+
+
+-- Load some shits
+kernel.locale = kernel.bootargs.locale
 
 -- Get Fs driver
 local fsLambda = kernel.bootargs.fsDriver
@@ -64,7 +68,18 @@ end
 -- Load Filesystem module with the Fs driver
 success, result = pcall(vfsBootstrap, kernel.vfsModulePath, kernel.vfsName)
 kernelAssert(success, "Error while loading:" .. kernel.vfsName .. " :" .. tostring(result)) 
-kernel.vfs = result()
+--kernel.rootMountpoint:close()
+--kernel.rootMountpoint = nil
+
+kernel.vfs = result().init("/", kernel.rootMountpoint)
+
+--local mounts = kernel.vfs:mounts()
+--local mess = ""
+--for k, v in pairs(mounts) do
+--  mess = mess .. k .. " : " .. tostring(v) .. "\n"
+--end
+--kernelPanic(mess)
+
 -- Create virtual filesystem
 
 

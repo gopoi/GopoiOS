@@ -11,6 +11,7 @@
 local ocFs = {}
 local fileBase = {}
 ocFs.__index = ocFs
+ocFs.partitionType = "filesystem"
 fileBase.__index = fileBase
 -------------------------------------------------------------------------------
 -- Disk space related methods
@@ -106,7 +107,10 @@ end
 -------------------------------------------------------------------------------
 -- File handle related methods
 function fileBase:close()
-  self.invoker(self.device, "close", self.handle)
+  if self.opened == true then
+    self.invoker(self.device, "close", self.handle)
+    self.opened = false
+  end  
 end
 
 function fileBase:seek(whence, offset)
@@ -122,31 +126,38 @@ function fileBase:read(count)
 end
 
 function ocFs:open(path, mode)
-  local newFile = setmetatable({}, fileBase)
+  local newFile = setmetatable({
+    __gc = fileBase.close}, fileBase)
   newFile.handle = self.invoker(self.device, "open", path, mode or "r")
   newFile.device = self.device
   newFile.invoker = self.invoker
+  newFile.opened = true
+  self.openedFiles[newFile.handle] = newFile
   return newFile
 end
 
 -------------------------------------------------------------------------------
 -- Driver related methods
-function ocFs:detach()
-
-end
-
-function ocFs.isCompatible(device, invoker)
-  return true
-end
-
-function ocFs.init(device, invoker)
-  if not invoker then
-    invoker = component.invoke
+function ocFs:close()
+  for _, v in pairs(self.openedFiles) do
+    v:close()
   end
-  local self = setmetatable({}, ocFs)
+  self.openedFiles = nil
+end
+
+function ocFs.isCompatible(device)
+  return component.type(device) == ocFs.partitionType
+end
+
+function ocFs.init(device)
+  local invoker = component.invoke
+  local self = setmetatable({
+    __gc = ocFs.close,
+    }, ocFs)
   kernelAssert(ocFs.isCompatible(device, invoker), "Device is not compatible with this driver.")
   self.device = device
   self.invoker = invoker
+  self.openedFiles = {}
   return self
 end
 

@@ -12,9 +12,10 @@
 local vfs = {}
 vfs.__index = vfs
 
+
 -------------------------------------------------------------------------------
 -- vfs local methods
-local function segments(path)
+function vfs.segments(path)
   path = path:gsub("\\", "/")
   repeat local n; path, n = path:gsub("//", "/") until n == 0
   local parts = {}
@@ -40,54 +41,133 @@ local function segments(path)
   return parts
 end
 
-local function addMountpoint()
-
-
+function vfs.canonical(path)
+  local result = table.concat(vfs.segments(path), "/")
+  if locale.sub(path, 1, 1) == "/" then
+    return "/" .. result
+  else
+    return result
+  end
 end
 
--------------------------------------------------------------------------------
--- vfs driver methods
-function vfs:attachDriver()
-
+local function getNode(self, path)
+  local node = self.rootNode
+  local parts = vfs.segments(path)
+  local restPath = ""
+  local index = 0
+  if #parts > 0 then
+    for _, v in pairs(parts) do
+      if node.child[v] then
+        node = node.child[v]
+      else
+        restPath = restPath .. "/" .. v
+      end
+    end 
+  end
+  return node, restPath
 end
 
-function vfs:detachDriver()
-
+local function getHandleNode(self, path)
+  local node = self.rootNode
+  local parts = vfs.segments(path)
+  local restPath = ""
+  local index = 0
+  if #parts > 0 then
+    for _, v in pairs(parts) do
+      if node.child[v].handle then
+        node = node.child[v]
+        restPath = ""
+      else
+        restPath = restPath .. "/" .. v
+      end
+    end 
+  end
+  return node, restPath
 end
 
+local function createNode(self, path)
+  local node, restPath = getNearestNode(self, path)
+  local parts = vfs.segments(restPath)
+  if #parts > 0 then
+    for _, v in pairs(parts) do
+      node.child[v] = {
+        child = {},
+        parent = node,
+        handle = nil,
+        }
+      node = node.child[v]
+    end
+  end
+  return node
+end
+
+local function listNodes(node, ret)
+  if ret == nil then
+    ret = {}
+  end
+  table.insert(ret, node)
+  --for _, v in pairs(node.child) do
+  --  listNodes(v, ret)
+  --end
+  return ret
+end
 -------------------------------------------------------------------------------
 -- vfs mounting methods
-function vfs:mount()
-
+function vfs:mount(mountpoint, mountpointDriver)
+  assert(type(mountpoint) == "string", "Bad argument #1: string expected")
+  assert(type(mountpointDriver) == "table", "Bad argument #2: table expected")
+  local node, pathRest = getNode(self, mountpoint)
+  
+  if pathRest == "" then
+    assert(not node.handle, "Mountpoint exists!")
+    node.handle = mountpointDriver
+  else
+    assert(node.handle, "Error while trying to find mountpoint!")
+    assert(node.handle.exists(restPath), "Path doesn't exists!")
+    node = createNode(self, mountpoint)
+    node.handle = mountpointDriver
+  end
 end
 
-function vfs:umount()
-
+function vfs:umount(mountpoint)
+  
 end
 
-function vfs:probe()
-
+function vfs:mounts()
+  nodes = listNodes(self.rootNode)
+  local handles = {}
+  for _, v in pairs(nodes) do
+    if v.handle then
+      handles[v.handle:getLabel()] = v.handle
+    end
+  end
+  return handles
 end
-
-
 
 -------------------------------------------------------------------------------
 -- IO/file namespaces lua override
 
 
-
-
-
-
-function vfs:open()
-
+function vfs:open(path, options)
+  assert(type(path) == "string", "Bad argument #1: string expected")
+  assert(type(options) == "string", "Bad argument #2: string expected")
+  local node, pathRest = getHandleNode(self, path)
+  assert(node.handle.exists(pathTest), "Error, file not found!")
+  return node.handle.open(pathRest)
 end
 
 -------------------------------------------------------------------------------
 -- vfs initialisation methods
 function vfs.init(rootMountpoint, rootMountpointDriver)
-  local self = setmetatable({}, vfs)
-  self.mountpoints = {}
+  local self = setmetatable({
+    mountpoints = {},
+    rootNode = {
+      child = {},
+      handle = nil,
+      },
+    }, vfs)
+  self.rootNode.parent = self.rootNode
+  self:mount(rootMountpoint, rootMountpointDriver)
   return self
 end
 
