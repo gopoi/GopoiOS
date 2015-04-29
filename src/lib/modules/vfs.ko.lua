@@ -74,7 +74,7 @@ local function getHandleNode(self, path)
   local index = 0
   if #parts > 0 then
     for _, v in pairs(parts) do
-      if node.child[v].handle then
+      if node.child[v] and node.child[v].handle then
         node = node.child[v]
         restPath = ""
       else
@@ -123,7 +123,7 @@ function vfs:mount(mountpoint, mountpointDriver)
     node.handle = mountpointDriver
   else
     assert(node.handle, "Error while trying to find mountpoint!")
-    assert(node.handle.exists(restPath), "Path doesn't exists!")
+    assert(node.handle:exists(restPath), "Path doesn't exists!")
     node = createNode(self, mountpoint)
     node.handle = mountpointDriver
   end
@@ -152,8 +152,8 @@ function vfs:open(path, options)
   assert(type(path) == "string", "Bad argument #1: string expected")
   assert(type(options) == "string", "Bad argument #2: string expected")
   local node, pathRest = getHandleNode(self, path)
-  assert(node.handle.exists(pathTest), "Error, file not found!")
-  return node.handle.open(pathRest)
+  assert(node.handle:exists(pathRest), "Error, file not found!")
+  return node.handle:open(pathRest, options)
 end
 
 -------------------------------------------------------------------------------

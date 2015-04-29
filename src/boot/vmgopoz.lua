@@ -73,6 +73,10 @@ kernelAssert(success, "Error while loading:" .. kernel.vfsName .. " :" .. tostri
 
 kernel.vfs = result().init("/", kernel.rootMountpoint)
 
+--local testFile = kernel.vfs:open("/lib/tempSharedLibrary.so.lua", "r")
+
+--kernelPanic(testFile:read(10))
+
 --local mounts = kernel.vfs:mounts()
 --local mess = ""
 --for k, v in pairs(mounts) do
