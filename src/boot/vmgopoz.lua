@@ -2,6 +2,7 @@
   Name: vmgopoz
   FullName: gopoiOS kernel
   Package: net.gopoi.gopoios
+  Version: 0.0.1
   Author: Shan B.
   Date: 2015-04-25
   Arch: Portable
@@ -21,7 +22,7 @@ function kernelPanic(...)
   for _, v in pairs(table.pack(...)) do
     text = text .. v .. "\n"
   end
-  error("\n-------- Catastrophic Derp occured! --------\nKernel Trace: " .. text .. "-------- End Trace --------\n")
+  error("\n-------- Catastrophic Derp occured! --------\nKernel Trace: " .. text .. "-------- End Trace --------\n", 2)
 end
 
 function kernelAssert(condition, ...)
