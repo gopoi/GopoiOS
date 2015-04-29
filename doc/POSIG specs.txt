@@ -11,8 +11,12 @@ Statement are defined like such:
 	Name:			string (Short name for the application)
 	FullName:		string (Long name for the application, would be used in a menu)
 	Package:		string (Unique namespace to form fully qualified names with the	application Name, use registered domain like 'gopoi.net' and put it like 'net.gopoi.gopoios', if you don't own a domain name use your email address like 'myname@email.com' -> com.email.myname.project)
+<<<<<<< HEAD
 	Description:	string (self-explanatory)
 	Dependencies:	strings (<namespace>: <library_in the_namespace>, <other one>; <different_namespace>: ....you get the point)
+=======
+	Dependendcies:	strings (<namespace>: <library_in the_namespace>, <other one>; <different_namespace>: ....you get the point)
+>>>>>>> 1a69e156ef0f7b8516882f5f8422d924b65cda6c
 	Author:			string (no comments)
 	Credits:		string (no comments)
 	Arch:			string (either, 'CraftOS', 'OpenOS' or 'Portable'; Portable is runnig over GopoiOS)
