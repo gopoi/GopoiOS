@@ -12,22 +12,30 @@
 -- Startup shits
 _ENV.kernel = {
   vfsModulePath = "/lib/modules/vfs.ko.lua",
-  vfsName = "vfs"
+  vfsName = "vfs",
+  loaderModulePath = "/lib/modules/modloader.ko.lua",
+  loaderName = "modloader"
 }
 local kernel = _ENV.kernel
 local success, result 
 
-function kernelPanic(...)
+local function kernelPanic(errorType, errorMsg, ...)
   local text = ""
   for _, v in pairs(table.pack(...)) do
     text = text .. tostring(v) .. "\n"
   end
-  error("\n-------- Catastrophic Derp occured! --------\nKernel Trace: " .. text .. "-------- End Trace --------\n", 2)
+  error("-------------- Catastrophic Derp occurred! --------------\n" ..
+        "A fatal error occurred in the kernel and broke everything\n" ..
+        "Error type: " .. errorType .. "\n" ..
+        "Error message: " .. errorMsg .. "\n" ..
+        "Additional information:" ..
+        "\n" .. text ..
+        "----------------------- End Trace -----------------------\n", 0)
 end
 
-function kernelAssert(condition, ...)
+local function kernelAssert(condition, ...)
   if not condition then
-    kernelPanic(...)
+    kernelPanic("Assertion failed", ...)
   end
 end
 
@@ -47,8 +55,8 @@ kernel.bootstrapDriver = result
 kernel.rootMountpoint = result.init(kernel.bootargs.root)
 fsLambda = nil
 
--- vfs bootstrap
-local function vfsBootstrap(filePath, fileName)
+---- vfs bootstrap process ----
+local function tryLoad(filePath, fileName)
   local handle, reason = kernel.rootMountpoint:open(filePath)
   if not handle then
     return nil, reason
@@ -66,15 +74,40 @@ local function vfsBootstrap(filePath, fileName)
 end
 
 -- Load Filesystem module with the Fs driver
-success, result = pcall(vfsBootstrap, kernel.vfsModulePath, kernel.vfsName)
+success, result = pcall(tryLoad, kernel.vfsModulePath, kernel.vfsName)
 kernelAssert(success, "Error while loading:" .. kernel.vfsName .. " :" .. tostring(result)) 
+kernel.vfs = result().init("/", kernel.rootMountpoint)
+
+-- Load the loader to finish the bootstrap process
+success, result = pcall(tryLoad, kernel.loaderModulePath, kernel.loaderName)
+kernelAssert(success, "Error while loading:" .. kernel.loaderName .. " :" .. tostring(result)) 
+kernel.loader = result().init()
+---- End Bootstrap process ----
+tryLoad = nil
+
+
+
+
+
+
+
+
+
+
 --kernel.rootMountpoint:close()
 --kernel.rootMountpoint = nil
 
-kernel.vfs = result().init("/", kernel.rootMountpoint)
+
+
+--function durr()
+--  error("ASDASDASD")
+--end
+
+--success, result = pcall(durr)
 
 --local testFile = kernel.vfs:open("/lib/tempSharedLibrary.so.lua", "r")
-
+--kernelAssert(success, result)
+--kernelPanic("DER")
 --kernelPanic(testFile:read(10))
 
 --local drives = kernel.bootstrapDriver.listConnectedDevices()

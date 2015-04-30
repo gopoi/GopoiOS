@@ -168,8 +168,6 @@ end
 
 -------------------------------------------------------------------------------
 -- IO/file namespaces lua override
-
-
 function vfs:open(path, options)
   assert(type(path) == "string", "Bad argument #1: string expected")
   assert(type(options) == "string", "Bad argument #2: string expected")

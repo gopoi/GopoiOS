@@ -187,7 +187,7 @@ function ocFs.init(device)
   if type(device) == "table" then
     device = ocFs.getDevice(device)
   end
-  kernelAssert(ocFs.isCompatible(device, invoker), "Device is not compatible with this driver.")
+  assert(ocFs.isCompatible(device, invoker), "Device is not compatible with this driver.")
   self.device = device
   self.invoker = invoker
   self.openedFiles = {}
