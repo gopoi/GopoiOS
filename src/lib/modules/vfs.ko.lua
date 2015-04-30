@@ -50,6 +50,20 @@ function vfs.canonical(path)
   end
 end
 
+local function retrievePath(node)
+  local oldNode = nil
+  local path = ""
+  while node ~= oldNode and node.name ~= "" do
+    path = "/" .. node.name .. path
+    oldNode = node
+    node = node.parent
+  end
+  if path == "" then 
+    path = "/"
+  end
+  return path
+end
+
 local function getNode(self, path)
   local node = self.rootNode
   local parts = vfs.segments(path)
@@ -74,9 +88,11 @@ local function getHandleNode(self, path)
   local index = 0
   if #parts > 0 then
     for _, v in pairs(parts) do
-      if node.child[v] and node.child[v].handle then
+      if node.child[v] then
         node = node.child[v]
-        restPath = ""
+        if node.handle then
+          restPath = ""
+        end
       else
         restPath = restPath .. "/" .. v
       end
@@ -86,7 +102,7 @@ local function getHandleNode(self, path)
 end
 
 local function createNode(self, path)
-  local node, restPath = getNearestNode(self, path)
+  local node, restPath = getHandleNode(self, path)
   local parts = vfs.segments(restPath)
   if #parts > 0 then
     for _, v in pairs(parts) do
@@ -94,6 +110,7 @@ local function createNode(self, path)
         child = {},
         parent = node,
         handle = nil,
+        name = v,
         }
       node = node.child[v]
     end
@@ -106,9 +123,9 @@ local function listNodes(node, ret)
     ret = {}
   end
   table.insert(ret, node)
-  --for _, v in pairs(node.child) do
-  --  listNodes(v, ret)
-  --end
+  for _, v in pairs(node.child) do
+    listNodes(v, ret)
+  end
   return ret
 end
 -------------------------------------------------------------------------------
@@ -117,13 +134,12 @@ function vfs:mount(mountpoint, mountpointDriver)
   assert(type(mountpoint) == "string", "Bad argument #1: string expected")
   assert(type(mountpointDriver) == "table", "Bad argument #2: table expected")
   local node, pathRest = getNode(self, mountpoint)
-  
   if pathRest == "" then
     assert(not node.handle, "Mountpoint exists!")
     node.handle = mountpointDriver
   else
     assert(node.handle, "Error while trying to find mountpoint!")
-    assert(node.handle:exists(restPath), "Path doesn't exists!")
+    assert(node.handle:exists(pathRest), "Path doesn't exists!")
     node = createNode(self, mountpoint)
     node.handle = mountpointDriver
   end
@@ -135,13 +151,19 @@ end
 
 function vfs:mounts()
   nodes = listNodes(self.rootNode)
-  local handles = {}
+  local mounts = {}
   for _, v in pairs(nodes) do
     if v.handle then
-      handles[v.handle:getLabel()] = v.handle
+      local name = v.handle:getLabel()
+      mounts[name] = {
+        handle = v.handle,
+        name = name,
+        path = retrievePath(v),
+        device = v.handle.device,
+      }
     end
   end
-  return handles
+  return mounts
 end
 
 -------------------------------------------------------------------------------
@@ -164,6 +186,7 @@ function vfs.init(rootMountpoint, rootMountpointDriver)
     rootNode = {
       child = {},
       handle = nil,
+      name = "",
       },
     }, vfs)
   self.rootNode.parent = self.rootNode

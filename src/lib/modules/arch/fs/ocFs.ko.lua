@@ -145,8 +145,38 @@ function ocFs:close()
   self.openedFiles = nil
 end
 
+function ocFs.getDevice(drive)
+  return drive.device
+end
+
 function ocFs.isCompatible(device)
   return component.type(device) == ocFs.partitionType
+end
+
+function ocFs.listConnectedDevices()
+  local drives = {}
+  for a, t in component.list(ocFs.partitionType) do
+    if ocFs.isCompatible(a) then
+      local name = component.invoke(a, "getLabel") or ""
+      drives[a] = {
+        device = a,
+        label = name,
+        type = t,
+      }
+    end
+  end
+  return drives
+end
+
+function ocFs.findDrive(label)
+  local drives = ocFs.listConnectedDevices()
+  local drive = nil
+  for _, v in pairs(drives) do
+    if v.label == label then
+      drive = v
+    end
+  end
+  return drive
 end
 
 function ocFs.init(device)
@@ -154,6 +184,9 @@ function ocFs.init(device)
   local self = setmetatable({
     __gc = ocFs.close,
     }, ocFs)
+  if type(device) == "table" then
+    device = ocFs.getDevice(device)
+  end
   kernelAssert(ocFs.isCompatible(device, invoker), "Device is not compatible with this driver.")
   self.device = device
   self.invoker = invoker

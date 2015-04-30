@@ -20,7 +20,7 @@ local success, result
 function kernelPanic(...)
   local text = ""
   for _, v in pairs(table.pack(...)) do
-    text = text .. v .. "\n"
+    text = text .. tostring(v) .. "\n"
   end
   error("\n-------- Catastrophic Derp occured! --------\nKernel Trace: " .. text .. "-------- End Trace --------\n", 2)
 end
@@ -77,12 +77,30 @@ kernel.vfs = result().init("/", kernel.rootMountpoint)
 
 --kernelPanic(testFile:read(10))
 
+--local drives = kernel.bootstrapDriver.listConnectedDevices()
+--local mess = ""
+--for k, v in pairs(drives) do
+--  mess = mess .. k .. " : " .. v.label.."\n"
+--end
+--kernelPanic(mess)
+--kernelPanic(kernel.bootstrapDriver.findDrive("tmpfs"))
+--local newPart = kernel.bootstrapDriver.init(kernel.bootstrapDriver.findDrive("raid"))
+--kernel.vfs:mount("/mnt/test", newPart )
+
+
+
+
 --local mounts = kernel.vfs:mounts()
 --local mess = ""
 --for k, v in pairs(mounts) do
---  mess = mess .. k .. " : " .. tostring(v) .. "\n"
+--  mess = mess .. k .. " : " .. tostring(v.path) .. " : " .. tostring(v.device) .. "\n"
 --end
 --kernelPanic(mess)
+--local myPath = "/mnt/test/derp/derp.txt"
+--local myFile = kernel.vfs:open("/mnt/test/derp/derp.txt", "r")
+
+--kernelPanic(myFile:read(10))
+
 
 -- Create virtual filesystem
 
