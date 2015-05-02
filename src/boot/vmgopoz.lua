@@ -8,13 +8,14 @@
   Arch: Portable
 ]]--
 
-
--- Startup shits
+--[[ Kernel Defenitions ]]--
 _ENV.kernel = {
-  vfsModulePath = "/lib/modules/vfs.ko.lua",
-  vfsName = "vfs",
-  loaderModulePath = "/lib/modules/modloader.ko.lua",
-  loaderName = "modloader"
+  modules = {
+    fs = {}
+    },
+  posig = {},
+  vfs = nil,
+  initrd = nil,
 }
 local kernel = _ENV.kernel
 local success, result 
@@ -23,11 +24,16 @@ local function kernelPanic(errorType, errorMsg, ...)
   local text = ""
   for _, v in pairs(table.pack(...)) do
     text = text .. tostring(v) .. "\n"
+    if type(v) == "table" then
+      for key, val in pairs(v) do
+        text = text .. "   " .. tostring(key) .. "  : " .. tostring(val) .. "\n"
+      end
+    end 
   end
   error("-------------- Catastrophic Derp occurred! --------------\n" ..
         "A fatal error occurred in the kernel and broke everything\n" ..
-        "Error type: " .. errorType .. "\n" ..
-        "Error message: " .. errorMsg .. "\n" ..
+        "Error type: " .. tostring(errorType) .. "\n" ..
+        "Error message: " .. tostring(errorMsg) .. "\n" ..
         "Additional information:" ..
         "\n" .. text ..
         "----------------------- End Trace -----------------------\n", 0)
@@ -39,28 +45,37 @@ local function kernelAssert(condition, ...)
   end
 end
 
--- Parse arguments
-kernel.bootargs = table.pack(...)[1] -- single table as arg for now
+function kernel.posig.getInfo(posigHeader)
 
+end
 
--- Load some shits
-kernel.locale = kernel.bootargs.locale
+function kernel.posig.getHeader(data)
 
--- Get Fs driver
-local fsLambda = kernel.bootargs.fsDriver
-kernelAssert(fsLambda, "Missing kernel boot arg: fsDriver")
-success, result = pcall(fsLambda)
-kernelAssert(success, "Error while loading fsDriver: " .. tostring(result))
-kernel.bootstrapDriver = result
-kernel.rootMountpoint = result.init(kernel.bootargs.root)
-fsLambda = nil
+end
 
----- vfs bootstrap process ----
-local function tryLoad(filePath, fileName)
-  local handle, reason = kernel.rootMountpoint:open(filePath)
-  if not handle then
-    return nil, reason
-  end
+function kernel.posig.isCompatible(posigInfo)
+
+end
+
+function kernel.modules.load(mod)
+
+end
+
+function kernel.modules.loadFile(path)
+
+end
+
+function kernel.modules.unload(mod)
+
+end
+
+function kernel.modules.list()
+
+end
+
+function kernel.readFile(path)
+  local handle, reason = kernel.vfs:open(path)
+  assert(handle, reason)
   local buffer = ""
   repeat
     local data, reason = handle:read(math.huge)
@@ -70,20 +85,66 @@ local function tryLoad(filePath, fileName)
     buffer = buffer .. (data or "")
   until not data
   handle:close()
-  return load(buffer, "=" .. fileName)
+  return buffer
 end
 
+function kernel.loadString(data, name, env)
+  return load(data, "=" .. name)
+end
+
+function kernel.loadFile(path, env)
+  return kernel.loadString(kernel.loadFile(path), path, env)
+end
+
+
+-- Parse arguments
+local bootargs = table.pack(...)[1] -- single table as arg for now
+kernelAssert(bootargs.initrd, "No initrd file found!, Halting", bootargs)
+kernelAssert(bootargs.locale, "No locale found!, Halting", bootargs)
+kernel.locale = bootargs.locale
+success, result = pcall(bootargs.initrd)
+kernelAssert(success, "Error while trying to load the initrd file", result)
+kernel.initrd = result
+-- Run the first initrd step to bootstrap vfs with a rootmountpoint
+kernel.initrd.bootstrap(kernel, bootargs)
+
+
+
+
+
+
+
+
+
+
+
+
+
+-- Get Fs driver
+--local fsLambda = kernel.bootargs.fsDriver
+--kernelAssert(fsLambda, "Missing kernel boot arg: fsDriver")
+--success, result = pcall(fsLambda)
+--kernelAssert(success, "Error while loading fsDriver: " .. tostring(result))
+--kernel.bootstrapDriver = result
+--kernel.rootMountpoint = result.init(kernel.bootargs.root)
+--fsLambda = nil
+
+
+
+
+
+
 -- Load Filesystem module with the Fs driver
-success, result = pcall(tryLoad, kernel.vfsModulePath, kernel.vfsName)
-kernelAssert(success, "Error while loading:" .. kernel.vfsName .. " :" .. tostring(result)) 
-kernel.vfs = result().init("/", kernel.rootMountpoint)
+--success, result = pcall(tryLoad, kernel.vfsModulePath, kernel.vfsName)
+--kernelAssert(success, "Error while loading:" .. kernel.vfsName .. " :" .. tostring(result)) 
+--kernel.vfs = result().init("/", kernel.rootMountpoint)
 
 -- Load the loader to finish the bootstrap process
-success, result = pcall(tryLoad, kernel.loaderModulePath, kernel.loaderName)
-kernelAssert(success, "Error while loading:" .. kernel.loaderName .. " :" .. tostring(result)) 
-kernel.loader = result().init()
+--success, result = pcall(tryLoad, kernel.loaderModulePath, kernel.loaderName)
+--kernelAssert(success, "Error while loading:" .. kernel.loaderName .. " :" .. tostring(result)) 
+--kernel.loader = result().init()
 ---- End Bootstrap process ----
-tryLoad = nil
+--tryLoad = nil
 
 
 

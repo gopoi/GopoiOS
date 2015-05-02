@@ -130,9 +130,12 @@ local function listNodes(node, ret)
 end
 -------------------------------------------------------------------------------
 -- vfs mounting methods
-function vfs:mount(mountpoint, mountpointDriver)
+function vfs:mount(mountpoint, mountpointType, device)
   assert(type(mountpoint) == "string", "Bad argument #1: string expected")
-  assert(type(mountpointDriver) == "table", "Bad argument #2: table expected")
+  assert(type(mountpointType) == "string", "Bad argument #2: string expected")
+  assert(self.drivers[mountpointType], "Type not found: " .. mountpointType)
+  local mountpointDriver = self.drivers[mountpointType].init(device)
+  
   local node, pathRest = getNode(self, mountpoint)
   if pathRest == "" then
     assert(not node.handle, "Mountpoint exists!")
@@ -166,6 +169,12 @@ function vfs:mounts()
   return mounts
 end
 
+function vfs:attach(driver)
+  self.drivers[driver.partitionType] = driver
+end
+
+
+
 -------------------------------------------------------------------------------
 -- IO/file namespaces lua override
 function vfs:open(path, options)
@@ -178,17 +187,18 @@ end
 
 -------------------------------------------------------------------------------
 -- vfs initialisation methods
-function vfs.init(rootMountpoint, rootMountpointDriver)
+function vfs.init(rootMountpoint, rootDriver, rootDevice)
   local self = setmetatable({
-    mountpoints = {},
+    drivers = {},
     rootNode = {
       child = {},
       handle = nil,
       name = "",
       },
     }, vfs)
+  self:attach(rootDriver)
   self.rootNode.parent = self.rootNode
-  self:mount(rootMountpoint, rootMountpointDriver)
+  self:mount("/", rootDriver.partitionType, rootDevice)
   return self
 end
 

@@ -10,8 +10,8 @@ local bootloader = {
   version = "0.0.1",
   kernelName = "vmgopoz",
   kernelFilePath = "/boot/vmgopoz.lua",
-  fsDriverName = "ocFs",
-  fsDriverFilePath = "/lib/modules/drivers/oc/fs.ko.lua",
+  initrdName = "initrd",
+  initrdFilePath = "/initrd.lua",
   kernelArgs = {
     arch = "oc",
     root = computer.getBootAddress(),
@@ -63,15 +63,13 @@ if gpu and screen then
   gpuEnabled = true
 end
 
----- Locate and load kernel Fs driver 
 local reason
-if (bootloader.fsDriverFilePath and fsDriverFilePath ~= "") then
-  bootloader.fsDriver, reason = bootloader.tryLoad(computer.getBootAddress(), bootloader.fsDriverFilePath, bootloader.fsDriverName)
-  if not bootloader.fsDriver then
-    error("Cannot load fsDriver:" .. bootloader.fsDriverFilePath .. " :" .. tostring(reason))
+if (bootloader.initrdFilePath and initrdFilePath ~= "") then
+  bootloader.initrd, reason = bootloader.tryLoad(computer.getBootAddress(), bootloader.initrdFilePath, bootloader.initrdName)
+  if not bootloader.initrd then
+    error("Cannot load initrd:" .. bootloader.initrdFilePath .. " :" .. tostring(reason))
   end
 end
-
 
 ---- Load kernel
 bootloader.kernel, reason = bootloader.tryLoad(computer.getBootAddress(), bootloader.kernelFilePath, bootloader.kernelName)
@@ -81,6 +79,7 @@ end
 
 ---- Boot kernel
 bootloader.kernelArgs.fsDriver = bootloader.fsDriver
+bootloader.kernelArgs.initrd = bootloader.initrd
 success, reason = pcall(bootloader.kernel, bootloader.kernelArgs) -- pass a table as an arg for now
 
 if not success then
