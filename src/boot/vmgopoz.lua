@@ -13,6 +13,7 @@ _ENV.kernel = {
   modules = {
     fs = {}
     },
+  arch = nil,
   posig = {},
   vfs = nil,
   initrd = nil,
@@ -45,36 +46,55 @@ local function kernelAssert(condition, ...)
   end
 end
 
-function kernel.posig.getInfo(posigHeader)
-
+function kernel.posig.getHeader(data)
+  local start = string.find(data, "POSIG")
+  local stop = string.find(data, "%]", start)
+  return string.sub(data, start - 1, stop)
 end
 
-function kernel.posig.getHeader(data)
-
+function kernel.posig.getInfo(posigHeader)
+  local expressions = {}
+  local info = {}
+  for part in posigHeader:gmatch("[^\n]+") do
+    part = part:gsub("\r", "")
+    part = part:gsub(" ", "")
+    table.insert(expressions, part)
+  end
+  local pos, ver = expressions[1]:match("([^/]+)/([^/]+)")
+  assert(pos == "POSIG")
+  info.posigVersion = ver
+  table.remove(expressions, 1)
+  for _, part in pairs(expressions) do
+    local k, v = part:match("([^:]+):([^:]+)")
+    if k and v then
+      info[tostring(k)] = tostring(v)
+    end 
+  end
+  return info
 end
 
 function kernel.posig.isCompatible(posigInfo)
-
+  return (posigInfo.Arch and (posigInfo.Arch:lower() == "portable" or posigInfo.Arch:lower() == kernel.arch))
 end
 
 function kernel.modules.load(mod)
 
 end
 
-function kernel.modules.loadFile(path)
+function kernel.modules.mount(mod)
 
 end
 
-function kernel.modules.unload(mod)
+function kernel.modules.umount(mod)
 
 end
 
 function kernel.modules.list()
-
+  
 end
 
 function kernel.readFile(path)
-  local handle, reason = kernel.vfs:open(path)
+  local handle, reason = kernel.vfs:open(path, "r")
   assert(handle, reason)
   local buffer = ""
   repeat
@@ -106,8 +126,8 @@ success, result = pcall(bootargs.initrd)
 kernelAssert(success, "Error while trying to load the initrd file", result)
 kernel.initrd = result
 -- Run the first initrd step to bootstrap vfs with a rootmountpoint
-kernel.initrd.bootstrap(kernel, bootargs)
-
+success, result = pcall(kernel.initrd.bootstrap, kernel, bootargs)
+kernelAssert(success, result)
 
 
 
@@ -165,6 +185,15 @@ kernel.initrd.bootstrap(kernel, bootargs)
 --end
 
 --success, result = pcall(durr)
+
+local testFile = kernel.readFile("/lib/tempSharedLibrary.so.lua")
+local header = kernel.posig.getHeader(testFile)
+local info = kernel.posig.getInfo(header)
+
+local derp = kernel.posig.isCompatible(info)
+--kernelPanic("DERP", kernel.posig.isCompatible(info), info)
+
+
 
 --local testFile = kernel.vfs:open("/lib/tempSharedLibrary.so.lua", "r")
 --kernelAssert(success, result)
