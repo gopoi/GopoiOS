@@ -11,7 +11,7 @@
 --[[ Kernel Defenitions ]]--
 _ENV.kernel = {
   modules = {
-    fs = {}
+    loaded = {}
     },
   arch = nil,
   posig = {},
@@ -77,20 +77,13 @@ function kernel.posig.isCompatible(posigInfo)
   return (posigInfo.Arch and (posigInfo.Arch:lower() == "portable" or posigInfo.Arch:lower() == kernel.arch))
 end
 
-function kernel.modules.load(mod)
-
-end
-
 function kernel.modules.mount(mod)
-
+  assert(kernel.modules.loaded[mod.name], "Module already loaded")
+  kernel.modules.loaded[mod.name] = mod
 end
 
 function kernel.modules.umount(mod)
-
-end
-
-function kernel.modules.list()
-  
+  local out = {}
 end
 
 function kernel.readFile(path)
@@ -113,7 +106,10 @@ function kernel.loadString(data, name, env)
 end
 
 function kernel.loadFile(path, env)
-  return kernel.loadString(kernel.loadFile(path), path, env)
+  local data = kernel.readFile(path)
+  local posig = kernel.posig.getHeader(data)
+  assert(kernel.posig.isCompatible(kernel.posig.getInfo(posig)), "Architecture not compatible")
+  return kernel.loadString(data, path, env), posig
 end
 
 
@@ -208,7 +204,8 @@ local derp = kernel.posig.isCompatible(info)
 --kernelPanic(mess)
 --kernelPanic(kernel.bootstrapDriver.findDrive("tmpfs"))
 --local newPart = kernel.bootstrapDriver.init(kernel.bootstrapDriver.findDrive("raid"))
---kernel.vfs:mount("/mnt/test", newPart )
+--local device = kernel.vfs.drivers.filesystem.findDrive("raid")
+kernel.vfs:mount("/mnt/test", "filesystem", kernel.vfs:findDrive("filesystem", "raid"))
 
 
 
@@ -220,9 +217,9 @@ local derp = kernel.posig.isCompatible(info)
 --end
 --kernelPanic(mess)
 --local myPath = "/mnt/test/derp/derp.txt"
---local myFile = kernel.vfs:open("/mnt/test/derp/derp.txt", "r")
+local myFile = kernel.vfs:open("/mnt/test/derp/derp.txt", "r")
 
---kernelPanic(myFile:read(10))
+kernelPanic(myFile:read(10))
 
 
 -- Create virtual filesystem

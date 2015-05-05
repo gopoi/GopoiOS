@@ -31,7 +31,6 @@ function initrd.bootstrap(kernel, bootargs)
   success, result = pcall(initrd.fsDriver)
   assert(success, "Error while loading fsDriver: " .. tostring(result))
   initrd.bootstrapDriver = result
-  --initrd.rootMountpoint = result.init(bootargs.root)
 
   -- Load Filesystem module with the Fs driver
   success, result = pcall(initrd.tryLoad, computer.getBootAddress(), initrd.vfsModulePath, initrd.vfsName)

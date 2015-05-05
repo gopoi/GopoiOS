@@ -173,7 +173,19 @@ function vfs:attach(driver)
   self.drivers[driver.partitionType] = driver
 end
 
+function vfs:listMountable()
+  local out = {}
+  for _, v in pairs(self.drivers) do
+    local drives = v.listConnectedDevices()
+    out[v.getPartitionType()] = drives
+  end
+  return out
+end
 
+function vfs:findDrive(driveType, label)
+  assert(self.drivers[driveType], "Partition type not found")
+  return self.drivers[driveType].findDrive(label)
+end
 
 -------------------------------------------------------------------------------
 -- IO/file namespaces lua override
