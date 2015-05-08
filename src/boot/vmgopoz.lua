@@ -109,11 +109,11 @@ function kernel.readFile(path)
 end
 
 function kernel.loadString(data, name, env)
-  return load(data, "=" .. name)
+  return load(data, "=" .. name, "t", env) --need to be able to load with env for isolation, text mode to be sure
 end
 
 function kernel.loadFile(path, env)
-  return kernel.loadString(kernel.loadFile(path), path, env)
+  return kernel.loadString(kernel.loadFile(path), path, env) --recursive function without exit option!
 end
 
 
