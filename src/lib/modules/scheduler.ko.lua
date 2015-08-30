@@ -1,6 +1,6 @@
 --[[ POSIG/0.0.1
 	 Name: scheduler
-	 FullName: Scheduler for all the processes that needs to run
+	 FullName: Scheduler for all the processTable that needs to run
 	 Package: net.gopoi.gopoios
 	 Version: 0.0.1
 	 Author: Simon Bastien-Filiatrault
@@ -15,13 +15,16 @@ local sandbox = require("isolation.ko")
 
 
 
---List of all processes
-local processes = {}
+
+--processTable
+local processTable = {}
+processTable.
+
 
 --Definition of process object
 local process = {}
 process.__index = process
-
+process.posig = {}
 
 
 
@@ -29,24 +32,25 @@ process.__index = process
 
 ------------------------------------------------------------
 --Working on process
-function process:resume() --it has been scheduled
+function process:resume() --it has been scheduled will return result and data for dispatch
 
 result, data = coroutine.resume(self.coroutine)
-
+return result, data
 end
 
 function process:exit()
 
+>>>>>>> Stashed changes
 end
 
 
 
-function process:new(parent, file, priority)
+
+function process:new(parent, file, priority, posig)
 	self = setmetatable({}, self)
 	self.priority = priority
-	--?
-	processes[#processes + 1] = self
-	--/?
+	self.posig = posig
+	processTable[#processTable + 1] = self
 	self.couroutine = couroutine.create(kernel.loadFile(file, sandbox))
 	
 end
@@ -59,4 +63,4 @@ end
 
 
 
-return process, processes, schedule
+return process, processTable, schedule
