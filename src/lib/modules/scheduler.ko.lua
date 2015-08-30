@@ -12,6 +12,7 @@ local kernelAssert = kernelAssert
 local kernelPanic = kernalPanic
 local coroutine = coroutine
 local sandbox = require("isolation.ko")
+<<<<<<< Updated upstream
 
 
 
@@ -20,6 +21,14 @@ local sandbox = require("isolation.ko")
 local processTable = {}
 processTable.
 
+=======
+
+
+
+--processTable
+local processTable = {}
+processTable.
+>>>>>>> Stashed changes
 
 --Definition of process object
 local process = {}
@@ -37,6 +46,12 @@ function process:resume() --it has been scheduled will return result and data fo
 result, data = coroutine.resume(self.coroutine)
 return result, data
 end
+<<<<<<< Updated upstream
+
+function process:exit()
+
+>>>>>>> Stashed changes
+=======
 
 function process:exit()
 
@@ -45,7 +60,10 @@ end
 
 
 
+<<<<<<< Updated upstream
 
+=======
+>>>>>>> Stashed changes
 function process:new(parent, file, priority, posig)
 	self = setmetatable({}, self)
 	self.priority = priority
