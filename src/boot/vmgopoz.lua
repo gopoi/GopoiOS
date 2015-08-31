@@ -6,6 +6,7 @@
   Author: Shan B.
   Date: 2015-04-25
   Arch: Portable
+  Dependencies: vfs.ko, scheduler.ko
 ]]--
 
 --[[ Kernel Defenitions ]]--

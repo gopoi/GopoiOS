@@ -10,11 +10,34 @@ Statement are defined like such:
 
 	Name:			string (Short name for the application)
 	FullName:		string (Long name for the application, would be used in a menu)
-	Package:		string (Unique namespace to form fully qualified names with the	application Name, use registered domain like 'gopoi.net' and put it like 'net.gopoi.gopoios', if you don't own a domain name use your email address like 'myname@email.com' -> com.email.myname.project)
+	Package:		string (Unique namespace to form fully qualified names with the	application Name, use registered domain like 'gopoi.net' and put it like 'net.gopoi.gopoios', if you don't own a domain name use your email address like 'myname@email.com' -> com.email.myname.project
 	Version:		number.number.number (major.minor.sub version of the app)
 	Description:	string (self-explanatory)
-	Dependencies:	strings (<namespace>: <library_in the_namespace>, <other one>; <different_namespace>: ....you get the point)
+	Dependencies:	strings (<library in package>, <other>; <namespace>: <library_in the_namespace>, <other one>; <different_namespace>: ....you get the point)
+	SoftDependencies: strings (same as Dependencies but if not found application will still start)
 	Author:			string (no comments)
 	Credits:		string (no comments)
 	Arch:			string (either, 'CC', 'OC' or 'Portable'; Portable is runnig over GopoiOS)
+	Arch:			string (either, 'CraftOS', 'OpenOS' or 'Portable'; Portable is running over GopoiOS)
 	
+	posig protocol for gopoios:
+	
+	package.name must be unique for the system
+	Before loading the appilcation we load Dependencies in context: posig table? 
+	
+	Everything is a file
+	Writing to a file might yield if it is an IO.
+	If an error happens in the operation an error is returned as string
+	each application has a number of file descriptor already accessible:
+	-standard input, output, error
+	-
+	posig :== {
+	"Name":...
+	...All attributes
+	"SoftDependencies": the ones loaded
+	"PID": "process identifier number"
+	"messages": {table of messages by the kernel}
+	
+	}
+	The kernel loads its own dependencies
+	The kernel valids and loads what the application needs and maintains a tree of dependancies, so if an application does not need a certain library anymore it could deload it.
