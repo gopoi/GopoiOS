@@ -15,13 +15,16 @@ _ENV.kernel = {
     },
   arch = nil,
   posig = {},
+  utils = {},
   vfs = nil,
   initrd = nil,
 }
 local kernel = _ENV.kernel
 local success, result 
 
-local function kernelPanic(errorType, errorMsg, ...)
+-------------------------------------------------------------------------------
+-- Kernel Utilities features
+function kernel.utils.panic(errorType, errorMsg, ...)
   local text = ""
   for _, v in pairs(table.pack(...)) do
     text = text .. tostring(v) .. "\n"
@@ -40,11 +43,38 @@ local function kernelPanic(errorType, errorMsg, ...)
         "----------------------- End Trace -----------------------\n", 0)
 end
 
-local function kernelAssert(condition, ...)
+
+function kernel.utils.tassert(condition, ...)
   if not condition then
-    kernelPanic("Assertion failed", ...)
+    local errorArgs = table.pack(...)
+    local errorTable = {}
+    for _, arg in ipairs(errorArgs) do
+      if (type(arg) == "table") then
+        for _, entry in ipairs(arg) do
+          table.insert(errorTable, entry)
+        end
+      else
+        table.insert(errorTable, arg)
+      end
+    end
+    error(errorTable)
   end
 end
+
+
+function kernel.utils.printk(...)
+	
+end
+
+function kernel.utils.tcall(func, message, ...)
+	local result = table.pack(pcall(func, ...))
+  kernel.utils.tassert(result[1], result[2], message)
+  table.remove(result, 1)
+  return table.unpack(result)
+end
+
+-------------------------------------------------------------------------------
+-- Posig subsystem
 
 function kernel.posig.getHeader(data)
   local start = string.find(data, "POSIG")
@@ -77,6 +107,10 @@ function kernel.posig.isCompatible(posigInfo)
   return (posigInfo.Arch and (posigInfo.Arch:lower() == "portable" or posigInfo.Arch:lower() == kernel.arch))
 end
 
+-------------------------------------------------------------------------------
+-- Modules management
+
+
 function kernel.modules.mount(mod)
   assert(kernel.modules.loaded[mod.name], "Module already loaded")
   kernel.modules.loaded[mod.name] = mod
@@ -85,6 +119,8 @@ end
 function kernel.modules.umount(mod)
   local out = {}
 end
+
+
 
 function kernel.readFile(path)
   local handle, reason = kernel.vfs:open(path, "r")
@@ -102,28 +138,29 @@ function kernel.readFile(path)
 end
 
 function kernel.loadString(data, name, env)
-  return load(data, "=" .. name)
+  local posig = kernel.posig.getHeader(data)
+  assert(kernel.posig.isCompatible(kernel.posig.getInfo(posig)), "Architecture not compatible")
+  return load(data, "=" .. name), posig
 end
 
 function kernel.loadFile(path, env)
   local data = kernel.readFile(path)
-  local posig = kernel.posig.getHeader(data)
-  assert(kernel.posig.isCompatible(kernel.posig.getInfo(posig)), "Architecture not compatible")
-  return kernel.loadString(data, path, env), posig
+  return kernel.loadString(data, path, env)
 end
 
 
+function runKernel(...)
 -- Parse arguments
 local bootargs = table.pack(...)[1] -- single table as arg for now
-kernelAssert(bootargs.initrd, "No initrd file found!, Halting", bootargs)
-kernelAssert(bootargs.locale, "No locale found!, Halting", bootargs)
+kernel.utils.tassert(bootargs.initrd, "No initrd file found!, Halting", bootargs)
+kernel.utils.tassert(bootargs.locale, "No locale found!, Halting", bootargs)
+kernel.utils.tassert(bootargs.arch, "No Arch found!, Halting", bootargs)
+kernel.arch = bootargs.arch
 kernel.locale = bootargs.locale
-success, result = pcall(bootargs.initrd)
-kernelAssert(success, "Error while trying to load the initrd file", result)
-kernel.initrd = result
+kernel.initrd = kernel.utils.tcall(bootargs.initrd, "Error while trying to load the initrd file")
+
 -- Run the first initrd step to bootstrap vfs with a rootmountpoint
-success, result = pcall(kernel.initrd.bootstrap, kernel, bootargs)
-kernelAssert(success, result)
+kernel.utils.tcall(kernel.initrd.bootstrap, "Error while running the initrd file", kernel, bootargs)
 
 
 
@@ -187,8 +224,8 @@ local header = kernel.posig.getHeader(testFile)
 local info = kernel.posig.getInfo(header)
 
 local derp = kernel.posig.isCompatible(info)
---kernelPanic("DERP", kernel.posig.isCompatible(info), info)
-
+--kernel.report.panic("DERP", kernel.posig.isCompatible(info), info)
+--kernel.report.panic("Arch", kernel.arch)
 
 
 --local testFile = kernel.vfs:open("/lib/tempSharedLibrary.so.lua", "r")
@@ -219,7 +256,7 @@ kernel.vfs:mount("/mnt/test", "filesystem", kernel.vfs:findDrive("filesystem", "
 --local myPath = "/mnt/test/derp/derp.txt"
 local myFile = kernel.vfs:open("/mnt/test/derp/derp.txt", "r")
 
-kernelPanic(myFile:read(10))
+error(myFile:read(10))
 
 
 -- Create virtual filesystem
@@ -260,3 +297,9 @@ kernelPanic(myFile:read(10))
 
 
 -- Shutdown 
+end
+
+local success, result = pcall(runKernel, ...)
+if not success then
+  kernel.utils.panic("Kernel internal error", "An error occured, but wasn't catched", result)
+end

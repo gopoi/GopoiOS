@@ -1,4 +1,11 @@
-
+--[[ POSIG/0.0.1
+  Name: Initrd
+  FullName: gopoiOS kernel bootstrapper for OpenComputers
+  Package: net.gopoi.gopoios
+  Author: Shan B.
+  Date: 2015-04-25
+  Arch: OC
+]]--
 
 
 local initrd = {
@@ -17,20 +24,30 @@ function initrd.tryLoad(address, filePath, fileName)
     buffer = buffer .. (data or "")
   until not data
   component.invoke(address, "close", handle)
-  return load(buffer, "=" .. fileName)
+  return kernel.loadString(buffer, fileName)
+  --assert(kernel.posig.isCompatible(kernel.posig.getInfo(kernel.posig.getHeader(buffer))), )
+  --return load(buffer, "=" .. fileName)
 end
 
 function initrd.bootstrap(kernel, bootargs)
   local result
   local success
-  success, result = pcall(initrd.tryLoad, computer.getBootAddress(), initrd.fsDriverFilePath, initrd.fsDriverName)
-  assert(success, "Cannot load fsDriver:" .. initrd.fsDriverFilePath .. " :" .. tostring(result))
-  initrd.fsDriver = result
   
+  --success, result = pcall(initrd.tryLoad, computer.getBootAddress(), initrd.fsDriverFilePath, initrd.fsDriverName)
+  --assert(success, "Cannot load fsDriver:" .. initrd.fsDriverFilePath .. " :" .. tostring(result))
+  --initrd.fsDriver = result
+  initrd.fsDriver = kernel.utils.tcall(initrd.tryLoad, "Cannot load fsDriver: " 
+                                       .. initrd.fsDriverFilePath, 
+                                       computer.getBootAddress(), 
+                                       initrd.fsDriverFilePath, 
+                                       initrd.fsDriverName)
   -- Get Fs driver
-  success, result = pcall(initrd.fsDriver)
-  assert(success, "Error while loading fsDriver: " .. tostring(result))
-  initrd.bootstrapDriver = result
+  --success, result = pcall(initrd.fsDriver)
+  --assert(success, "Error while loading fsDriver: " .. tostring(result))
+  --initrd.bootstrapDriver = result
+  initrd.bootstrapDriver = kernel.utils.tcall(initrd.fsDriver, 
+                                              "Error while loading fsDriver")
+  
 
   -- Load Filesystem module with the Fs driver
   success, result = pcall(initrd.tryLoad, computer.getBootAddress(), initrd.vfsModulePath, initrd.vfsName)

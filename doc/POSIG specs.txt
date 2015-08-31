@@ -16,5 +16,5 @@ Statement are defined like such:
 	Dependencies:	strings (<namespace>: <library_in the_namespace>, <other one>; <different_namespace>: ....you get the point)
 	Author:			string (no comments)
 	Credits:		string (no comments)
-	Arch:			string (either, 'CraftOS', 'OpenOS' or 'Portable'; Portable is runnig over GopoiOS)
+	Arch:			string (either, 'CC', 'OC' or 'Portable'; Portable is runnig over GopoiOS)
 	

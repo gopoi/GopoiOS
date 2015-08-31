@@ -1,11 +1,12 @@
 --[[ POSIG/0.0.1
   Name: GopoiLoader
-  FullName: gopoiOS kernel bootstrapper for OpenComputers
+  FullName: gopoiOS kernel bootstrapper for OpenComputers on default BIOS
   Package: net.gopoi.gopoios
   Author: Shan B.
   Date: 2015-04-25
-  Arch: OpenOS
+  Arch: OC
 ]]--
+
 local bootloader = {
   version = "0.0.1",
   kernelName = "vmgopoz",
@@ -97,7 +98,7 @@ if not success then
       bootloader.invoke(gpu, "set", 1, 1, reason)
     end
   end
-    error(reason)
+    error(reason, 0)
 end
 computer.beep(2000, 1)
 computer.beep(1000, 1)
