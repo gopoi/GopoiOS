@@ -18,7 +18,7 @@ Statement are defined like such:
 	Author:			string (no comments)
 	Credits:		string (no comments)
 	Arch:			string (either, 'CC', 'OC' or 'Portable'; Portable is runnig over GopoiOS)
-	Arch:			string (either, 'CraftOS', 'OpenOS' or 'Portable'; Portable is running over GopoiOS)
+	
 	
 	posig protocol for gopoios:
 	
