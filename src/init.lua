@@ -11,11 +11,11 @@ local bootloader = {
   version = "0.0.1",
   kernelName = "vmgopoz",
   kernelFilePath = "/boot/vmgopoz.lua",
-  initrdName = "initrd",
   initrdFilePath = "/initrd.lua",
   kernelArgs = {
-    arch = "oc",
+    --arch = "oc",
     root = computer.getBootAddress(),
+    initrdName = "initrd",
     locale = unicode,
   },
   invokeHandle = component.invoke
@@ -46,7 +46,8 @@ function bootloader.tryLoad(address, filePath, fileName)
     buffer = buffer .. (data or "")
   until not data
   bootloader.invoke(address, "close", handle)
-  return load(buffer, "=" .. fileName)
+  --return load(buffer, "=" .. fileName)
+  return buffer
 end
 
 ---- Locate and map Gpu and screen
@@ -64,22 +65,27 @@ if gpu and screen then
   gpuEnabled = true
 end
 
+---- Load initrd
 local reason
 if (bootloader.initrdFilePath and initrdFilePath ~= "") then
-  bootloader.initrd, reason = bootloader.tryLoad(computer.getBootAddress(), bootloader.initrdFilePath, bootloader.initrdName)
+  bootloader.initrd, reason = bootloader.tryLoad(computer.getBootAddress(), bootloader.initrdFilePath)
   if not bootloader.initrd then
     error("Cannot load initrd:" .. bootloader.initrdFilePath .. " :" .. tostring(reason))
   end
 end
+
 
 ---- Load kernel
 bootloader.kernel, reason = bootloader.tryLoad(computer.getBootAddress(), bootloader.kernelFilePath, bootloader.kernelName)
 if not bootloader.kernel then
   error("Cannot load Kernel:" .. bootloader.kernelFilePath .. " :" .. tostring(reason))
 end
+bootloader.kernel = load(bootloader.kernel, "=" .. bootloader.kernelName)
 
+---- Cleanup some shits
+bootloader.tryLoad = nil
 ---- Boot kernel
-bootloader.kernelArgs.fsDriver = bootloader.fsDriver
+--bootloader.kernelArgs.fsDriver = bootloader.fsDriver
 bootloader.kernelArgs.initrd = bootloader.initrd
 success, reason = pcall(bootloader.kernel, bootloader.kernelArgs) -- pass a table as an arg for now
 

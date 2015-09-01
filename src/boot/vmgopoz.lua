@@ -17,6 +17,7 @@ _ENV.kernel = {
   arch = nil,
   posig = {},
   utils = {},
+  report = {},
   vfs = nil,
   initrd = nil,
 }
@@ -25,7 +26,9 @@ local success, result
 
 -------------------------------------------------------------------------------
 -- Kernel Utilities features
-function kernel.utils.panic(errorType, errorMsg, ...)
+local function kernelPanic(errorType, errorMsg, ...)
+
+  -- Additionnal information parse
   local text = ""
   for _, v in pairs(table.pack(...)) do
     text = text .. tostring(v) .. "\n"
@@ -35,41 +38,40 @@ function kernel.utils.panic(errorType, errorMsg, ...)
       end
     end 
   end
+  
+  -- error Msg parse
+  errorMsg = errorMsg:gsub("\r", "")
+  errorMsg = errorMsg:gsub("\n", "\n  ")
+  errorMsg = errorMsg:gsub("\001", "\n  ")
+  errorMsg = errorMsg:gsub("\002", "\n")
+  
+  -- local errorMsgText = ""
+  -- for part in errorMsg:gmatch("[^\000]+") do
+      -- part = part:gsub("\r", "")
+      -- part = part:gsub("\n", "\n  ")
+      -- part = part:gsub("\001", "\n")
+      -- errorMsgText = errorMsgText  .. "\n" .. tostring(part) 
+  -- end
+  
   error("-------------- Catastrophic Derp occurred! --------------\n" ..
         "A fatal error occurred in the kernel and broke everything\n" ..
         "Error type: " .. tostring(errorType) .. "\n" ..
-        "Error message: " .. tostring(errorMsg) .. "\n" ..
+        "Error message: \n\n" .. tostring((errorMsg)) .. "\n" ..
         "Additional information:" ..
         "\n" .. text ..
         "----------------------- End Trace -----------------------\n", 0)
 end
 
 
-function kernel.utils.tassert(condition, ...)
-  if not condition then
-    local errorArgs = table.pack(...)
-    local errorTable = {}
-    for _, arg in ipairs(errorArgs) do
-      if (type(arg) == "table") then
-        for _, entry in ipairs(arg) do
-          table.insert(errorTable, entry)
-        end
-      else
-        table.insert(errorTable, arg)
-      end
-    end
-    error(errorTable)
-  end
-end
-
-
-function kernel.utils.printk(...)
-	
+function kernel.utils.assertFormat(message, assertStack)
+  return "\001" .. tostring(message) .. "\002" .. tostring(assertStack or "")
 end
 
 function kernel.utils.tcall(func, message, ...)
 	local result = table.pack(pcall(func, ...))
-  kernel.utils.tassert(result[1], result[2], message)
+  if not result[1] then
+    error(kernel.utils.assertFormat(message, result[2]), 2)
+  end
   table.remove(result, 1)
   return table.unpack(result)
 end
@@ -92,7 +94,7 @@ function kernel.posig.getInfo(posigHeader)
     table.insert(expressions, part)
   end
   local pos, ver = expressions[1]:match("([^/]+)/([^/]+)")
-  assert(pos == "POSIG")
+  assert(pos == "POSIG", kernel.utils.assertFormat("No POSIG header found"))
   info.posigVersion = ver
   table.remove(expressions, 1)
   for _, part in pairs(expressions) do
@@ -113,7 +115,7 @@ end
 
 
 function kernel.modules.mount(mod)
-  assert(kernel.modules.loaded[mod.name], "Module already loaded")
+  --assert(kernel.modules.loaded[mod.name], "Module already loaded")
   kernel.modules.loaded[mod.name] = mod
 end
 
@@ -140,8 +142,10 @@ end
 
 function kernel.loadString(data, name, env)
   local posig = kernel.posig.getHeader(data)
-  assert(kernel.posig.isCompatible(kernel.posig.getInfo(posig)), "Architecture not compatible")
-  return load(data, "=" .. name), posig
+  assert(kernel.posig.isCompatible(kernel.posig.getInfo(posig)), kernel.utils.assertFormat("Architecture not compatible"))
+  local returnVal, returnError = load(data, "=" .. name)
+  assert(returnVal, kernel.utils.assertFormat(returnError))
+  return returnVal, posig
 end
 
 function kernel.loadFile(path, env)
@@ -151,17 +155,34 @@ end
 
 
 function runKernel(...)
+--------------------------------------------------------------------
+-- Pre boot (bootstrap)
+
 -- Parse arguments
 local bootargs = table.pack(...)[1] -- single table as arg for now
-kernel.utils.tassert(bootargs.initrd, "No initrd file found!, Halting", bootargs)
-kernel.utils.tassert(bootargs.locale, "No locale found!, Halting", bootargs)
-kernel.utils.tassert(bootargs.arch, "No Arch found!, Halting", bootargs)
-kernel.arch = bootargs.arch
+assert(bootargs.initrd, kernel.utils.assertFormat("No initrd file found!, Halting"))
+assert(bootargs.locale, kernel.utils.assertFormat("No locale found!, Halting"))
 kernel.locale = bootargs.locale
-kernel.initrd = kernel.utils.tcall(bootargs.initrd, "Error while trying to load the initrd file")
+
+-- Parse Initrd POSIG and set kernel arch
+kernel.initrdPOSIG = kernel.posig.getInfo(kernel.posig.getHeader(bootargs.initrd))
+kernel.arch = kernel.initrdPOSIG.Arch:lower()
+assert(kernel.arch, kernel.utils.assertFormat("No Arch found!, Halting"))
+
+-- Load the initrd 
+kernel.initrd = kernel.utils.tcall(kernel.loadString, "Error while trying to load the initrd file", bootargs.initrd, bootargs.initrdName)
+kernel.initrd = kernel.utils.tcall(kernel.initrd, "Error while trying to running the initrd file")
+bootargs.initrd = nil
 
 -- Run the first initrd step to bootstrap vfs with a rootmountpoint
-kernel.utils.tcall(kernel.initrd.bootstrap, "Error while running the initrd file", kernel, bootargs)
+kernel.utils.tcall(kernel.initrd.bootstrap, "Error while running the initrd bootstrap", kernel, bootargs)
+
+
+--------------------------------------------------------------------
+-- Boot sequence
+
+-- Run the initrd boot
+kernel.utils.tcall(kernel.initrd.boot, "Error while running the initrd boot")
 
 
 
@@ -174,51 +195,11 @@ kernel.utils.tcall(kernel.initrd.bootstrap, "Error while running the initrd file
 
 
 
--- Get Fs driver
---local fsLambda = kernel.bootargs.fsDriver
---kernelAssert(fsLambda, "Missing kernel boot arg: fsDriver")
---success, result = pcall(fsLambda)
---kernelAssert(success, "Error while loading fsDriver: " .. tostring(result))
---kernel.bootstrapDriver = result
---kernel.rootMountpoint = result.init(kernel.bootargs.root)
---fsLambda = nil
 
 
 
 
 
-
--- Load Filesystem module with the Fs driver
---success, result = pcall(tryLoad, kernel.vfsModulePath, kernel.vfsName)
---kernelAssert(success, "Error while loading:" .. kernel.vfsName .. " :" .. tostring(result)) 
---kernel.vfs = result().init("/", kernel.rootMountpoint)
-
--- Load the loader to finish the bootstrap process
---success, result = pcall(tryLoad, kernel.loaderModulePath, kernel.loaderName)
---kernelAssert(success, "Error while loading:" .. kernel.loaderName .. " :" .. tostring(result)) 
---kernel.loader = result().init()
----- End Bootstrap process ----
---tryLoad = nil
-
-
-
-
-
-
-
-
-
-
---kernel.rootMountpoint:close()
---kernel.rootMountpoint = nil
-
-
-
---function durr()
---  error("ASDASDASD")
---end
-
---success, result = pcall(durr)
 
 local testFile = kernel.readFile("/lib/tempSharedLibrary.so.lua")
 local header = kernel.posig.getHeader(testFile)
@@ -302,5 +283,5 @@ end
 
 local success, result = pcall(runKernel, ...)
 if not success then
-  kernel.utils.panic("Kernel internal error", "An error occured, but wasn't catched", result)
+  kernelPanic("Kernel internal error", result)
 end
