@@ -21,6 +21,7 @@ Statement are defined like such:
 	
 	
 	Dependencies: aplication have no extensions (applol), libraris have .so as extension, modules have .ko as extensions
+	there is also a version number written after an operator (=, <, >, <=, >=, !=)
 	
 	posig protocol for gopoios:
 	
