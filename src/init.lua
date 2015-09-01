@@ -4,7 +4,7 @@
   Package: net.gopoi.gopoios
   Author: Shan B.
   Date: 2015-04-25
-  Arch: OC
+  Arch: opencomputers
 ]]--
 
 local bootloader = {

@@ -5,7 +5,7 @@
   Version: 0.0.1
   Author: Shan B.
   Date: 2015-04-25
-  Arch: Portable
+  Arch: portable
   Dependencies: vfs.ko, scheduler.ko
 ]]--
 
@@ -71,40 +71,67 @@ end
 -------------------------------------------------------------------------------
 -- Posig subsystem
 
+local function parseDependencies(depString)
+  local dependencies = {}
+  if type(depString) == "string" and depString ~= "" then
+    -- split namespaces
+    for namespace in depString:gmatch("[^:]+") do
+      -- Remove whitespaces and fine namespace
+      namespace = namespace:gsub(" ", "")
+      local deps, namespaceName = namespace:match("([^;]+);([^;]+)")
+      dependencies[namespaceName] = {}
+      -- for each namespace, add dependency
+      for dep in deps:gmatch(("[^,]+") ) do
+        table.insert(dependencies[namespaceName], dep)
+      end
+    end
+  end 
+  return dependencies
+end
+
+
 function kernel.posig.getHeader(data)
   local start = string.find(data, "POSIG")
   local stop = string.find(data, "%]", start)
   return string.sub(data, start - 1, stop)
 end
 
+function kernel.posig.getDependencies(posigInfo)
+  local dependencies = parseDependencies(posigInfo.dependencies)
+  local softDependencies = parseDependencies(posigInfo.softdependencies)
+  return dependencies, softDependencies
+end
+
 function kernel.posig.getInfo(posigHeader)
   local expressions = {}
   local info = {}
+  -- split and remove \n\r and whitespaces
   for part in posigHeader:gmatch("[^\n]+") do
     part = part:gsub("\r", "")
     part = part:gsub(" ", "")
     table.insert(expressions, part)
   end
+  -- Check for a "POSIG/x.x.x" fingerprint
   local pos, ver = expressions[1]:match("([^/]+)/([^/]+)")
   assert(pos == "POSIG", kernel.utils.assertFormat("No POSIG header found"))
   info.posigVersion = ver
   table.remove(expressions, 1)
+  -- Get all attributes and values
   for _, part in pairs(expressions) do
-    local k, v = part:match("([^:]+):([^:]+)")
+    local k, v = part:match("([^:]+):(.+)")
     if k and v then
-      info[tostring(k)] = tostring(v)
+      info[tostring(k):lower()] = tostring(v)
     end 
   end
   return info
 end
 
 function kernel.posig.isCompatible(posigInfo)
-  return (posigInfo.Arch and (posigInfo.Arch:lower() == "portable" or posigInfo.Arch:lower() == kernel.arch))
+  return (posigInfo.arch and (posigInfo.arch == "portable" or posigInfo.arch == kernel.arch))
 end
 
 -------------------------------------------------------------------------------
 -- Modules management
-
 
 function kernel.modules.mount(mod)
   --assert(kernel.modules.loaded[mod.name], "Module already loaded")
@@ -115,8 +142,8 @@ function kernel.modules.umount(mod)
   local out = {}
 end
 
-
-
+-------------------------------------------------------------------------------
+-- Kernel file loader 
 function kernel.readFile(path)
   local handle, reason = kernel.vfs:open(path, "r")
   assert(handle, reason)
@@ -146,6 +173,9 @@ function kernel.loadFile(path, env)
 end
 
 
+-------------------------------------------------------------------------------
+-- Kernel main program
+
 function runKernel(...)
 --------------------------------------------------------------------
 -- Pre boot (bootstrap)
@@ -158,7 +188,7 @@ kernel.locale = bootargs.locale
 
 -- Parse Initrd POSIG and set kernel arch
 kernel.initrdPOSIG = kernel.posig.getInfo(kernel.posig.getHeader(bootargs.initrd))
-kernel.arch = kernel.initrdPOSIG.Arch:lower()
+kernel.arch = kernel.initrdPOSIG.arch
 assert(kernel.arch, kernel.utils.assertFormat("No Arch found!, Halting"))
 
 -- Load the initrd 
@@ -182,8 +212,8 @@ kernel.utils.tcall(kernel.initrd.boot, "Error while running the initrd boot")
 
 
 
-
-
+local deps, softDeps = kernel.posig.getDependencies(kernel.initrdPOSIG)
+--error(deps)
 
 
 
@@ -275,5 +305,9 @@ end
 
 local success, result = pcall(runKernel, ...)
 if not success then
-  kernelPanic("Kernel internal error", result)
+  if type(result) == "table" then
+    kernelPanic("Kernel internal error", "Got Table", result)
+  else
+    kernelPanic("Kernel internal error", result)
+  end
 end

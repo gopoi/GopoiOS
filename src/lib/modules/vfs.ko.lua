@@ -5,7 +5,7 @@
   Author: Shan B.
   Credit: OpenComputers openOS Filesystem
   Date: 2015-04-26
-  Arch: Portable
+  Arch: portable
 ]]--
 
 

@@ -4,7 +4,9 @@
   Package: net.gopoi.gopoios
   Author: Shan B.
   Date: 2015-04-25
-  Arch: OC
+  Arch: opencomputers
+  Dependencies: vmgopoz.ko, vfs.ko; net.gopoi.gopoios : test.ko, derp.kp; info.sbernard.corelib
+  SoftDependencies: systemd.ko, libuser.ko; localdomain.localhost : udev.ko; net.gopoi.gopoios
 ]]--
 
 
