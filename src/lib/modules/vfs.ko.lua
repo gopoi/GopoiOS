@@ -14,7 +14,8 @@ vfs.__index = vfs
 
 
 -------------------------------------------------------------------------------
--- vfs local methods
+-- vfs helper methods
+
 function vfs.segments(path)
   path = path:gsub("\\", "/")
   repeat local n; path, n = path:gsub("//", "/") until n == 0
@@ -50,6 +51,9 @@ function vfs.canonical(path)
   end
 end
 
+-------------------------------------------------------------------------------
+-- vfs local methods
+
 local function retrievePath(node)
   local oldNode = nil
   local path = ""
@@ -68,41 +72,31 @@ local function getNode(self, path)
   local node = self.rootNode
   local parts = vfs.segments(path)
   local restPath = ""
-  local index = 0
+  local hnode = node
+  local hrestPath = ""
+  local continue = true
   if #parts > 0 then
     for _, v in pairs(parts) do
-      if node.child[v] then
-        node = node.child[v]
-      else
-        restPath = restPath .. "/" .. v
-      end
-    end 
-  end
-  return node, restPath
-end
-
-local function getHandleNode(self, path)
-  local node = self.rootNode
-  local parts = vfs.segments(path)
-  local restPath = ""
-  local index = 0
-  if #parts > 0 then
-    for _, v in pairs(parts) do
-      if node.child[v] then
+      if node.child[v] and continue then
         node = node.child[v]
         if node.handle then
-          restPath = ""
+          hrestPath = ""
+          hnode = node
+        else
+          hrestPath = hrestPath .. "/" .. v
         end
       else
+        continue = false
         restPath = restPath .. "/" .. v
+        hrestPath = hrestPath .. "/" .. v
       end
     end 
   end
-  return node, restPath
+  return node, restPath, hnode, hrestPath
 end
 
 local function createNode(self, path)
-  local node, restPath = getHandleNode(self, path)
+  local node, restPath = getNode(self, path)
   local parts = vfs.segments(restPath)
   if #parts > 0 then
     for _, v in pairs(parts) do
@@ -128,8 +122,11 @@ local function listNodes(node, ret)
   end
   return ret
 end
+
+
 -------------------------------------------------------------------------------
 -- vfs mounting methods
+
 function vfs:mount(mountpoint, mountpointType, device)
   assert(type(mountpoint) == "string", "Bad argument #1: string expected")
   assert(type(mountpointType) == "string", "Bad argument #2: string expected")
@@ -187,18 +184,23 @@ function vfs:findDrive(driveType, label)
   return self.drivers[driveType].findDrive(label)
 end
 
+
 -------------------------------------------------------------------------------
 -- IO/file namespaces lua override
+
 function vfs:open(path, options)
   assert(type(path) == "string", "Bad argument #1: string expected")
   assert(type(options) == "string", "Bad argument #2: string expected")
-  local node, pathRest = getHandleNode(self, path)
+  local _, _, node, pathRest = getNode(self, path)
+  --assert(false, node.name)
   assert(node.handle:exists(pathRest), "Error, file not found!")
   return node.handle:open(pathRest, options)
 end
 
+
 -------------------------------------------------------------------------------
 -- vfs initialisation methods
+
 function vfs.init(rootMountpoint, rootDriver, rootDevice)
   local self = setmetatable({
     drivers = {},

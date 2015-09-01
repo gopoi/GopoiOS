@@ -45,14 +45,6 @@ local function kernelPanic(errorType, errorMsg, ...)
   errorMsg = errorMsg:gsub("\001", "\n  ")
   errorMsg = errorMsg:gsub("\002", "\n")
   
-  -- local errorMsgText = ""
-  -- for part in errorMsg:gmatch("[^\000]+") do
-      -- part = part:gsub("\r", "")
-      -- part = part:gsub("\n", "\n  ")
-      -- part = part:gsub("\001", "\n")
-      -- errorMsgText = errorMsgText  .. "\n" .. tostring(part) 
-  -- end
-  
   error("-------------- Catastrophic Derp occurred! --------------\n" ..
         "A fatal error occurred in the kernel and broke everything\n" ..
         "Error type: " .. tostring(errorType) .. "\n" ..
