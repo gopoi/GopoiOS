@@ -17,8 +17,10 @@ Statement are defined like such:
 	SoftDependencies: strings (same as Dependencies but if not found application will still start)
 	Author:			string (no comments)
 	Credits:		string (no comments)
-	Arch:			string (either, 'CC', 'OC' or 'Portable'; Portable is runnig over GopoiOS)
+	Arch:			string (either, 'computercratf', 'opencomputers' or 'portable'; portable is runnig over GopoiOS)
 	
+	
+	Dependencies: aplication have no extensions (applol), libraris have .so as extension, modules have .ko as extensions
 	
 	posig protocol for gopoios:
 	
