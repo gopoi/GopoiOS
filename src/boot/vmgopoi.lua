@@ -170,7 +170,7 @@ function kernel.posig.parseHeader(data)
   local header = kernel.posig.utils.getHeader(data)
   local expressions = kernel.posig.utils.formatHeader(header)
   local isPosig, ver = kernel.posig.utils.checkHeader(expressions)
-  assert(isPosig, "No POSIG header found")
+  assert(isPosig, "No POSIG header found", 2)
   table.remove(expressions, 1)
   local info = kernel.posig.utils.getInfo(expressions)
   info.posigVersion = ver
@@ -200,18 +200,18 @@ function kernel.modules.unprobe(name)
 end
 
 function kernel.modules.insmod(fileData, name)
-  assert(kernel.modules.loaded[name] == nil, "Module already exists")
+  assert(kernel.modules.loaded[name] == nil, "Module " .. name .. " already exists", 2)
   kernel.base.load(fileData, name)
   local posig = kernel.posig.parseHeader(data)
-  assert(kernel.posig.isCompatible(posig, "Architecture not compatible")
+  assert(kernel.posig.isCompatible(posig), "Architecture not compatible", 2)
   local ctor, err = load(data, "=" .. name)
-  assert(ctor, err)
+  assert(ctor, err, 2)
   local mod = {
     handle = ctor(),
     posig = posig,
   }
-  assert(mod.handle)
-  assert(mod.handle.insmod)
+  assert(mod.handle, "Error while running module " .. name, 2)
+  assert(mod.handle.insmod, "No insmod found in module " .. name, 2)
   mod.handle.insmod()
   kernel.modules.loaded[name] = mod
 end
@@ -228,7 +228,7 @@ end
 -- Kernel Main functions
 function kernel.base.load(data, name)
   local posig = kernel.posig.parseHeader(data)
-  assert(kernel.posig.isCompatible(posig, "Architecture not compatible")
+  assert(kernel.posig.isCompatible(posig), "Architecture not compatible", 0)
   local ctor, err = load(data, "=" .. name)
   assert(ctor, err)
   return ctor, posig
@@ -236,7 +236,8 @@ end
 
 function kernel.base.boot(...)
   local bootargs = table.pack(...)[1] 
-  assert(bootargs.initrd)
+  assert(bootargs, "No bootargs found, Halting!", 0)
+  assert(bootargs.initrd, "No initrd file found, Halting!", 0)
   kernel.base.initrd = kernel.base.load(bootargs.initrd, bootargs.initrdName)()
   kernel.base.initrd.bootstrap(kernel)
   kernel.base.initrd.boot(kernel)
