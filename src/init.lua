@@ -9,14 +9,14 @@
 
 local bootloader = {
   version = "0.0.1",
-  kernelName = "vmgopoz",
-  kernelFilePath = "/boot/vmgopoz.lua",
+  kernelName = "vmgopoi",
+  kernelFilePath = "/boot/vmgopoi.lua",
   initrdFilePath = "/initrd.lua",
   kernelArgs = {
-    --arch = "oc",
     root = computer.getBootAddress(),
     initrdName = "initrd",
     locale = unicode,
+    arch = "opencomputers",
   },
   invokeHandle = component.invoke
  }
@@ -46,7 +46,6 @@ function bootloader.tryLoad(address, filePath, fileName)
     buffer = buffer .. (data or "")
   until not data
   bootloader.invoke(address, "close", handle)
-  --return load(buffer, "=" .. fileName)
   return buffer
 end
 

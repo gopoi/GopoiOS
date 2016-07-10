@@ -9,46 +9,48 @@
   SoftDependencies: systemd.ko, libuser.ko; localdomain.localhost : udev.ko; net.gopoi.gopoios
 ]]--
 
-
 local initrd = {
   fsDriverName = "ocFs",
-  fsDriverFilePath = "/lib/modules/drivers/oc/fs.ko.lua",
+  fsDriverPath = "/lib/modules/drivers/oc/fs.ko.lua",
   vfsModulePath = "/lib/modules/vfs.ko.lua",
   vfsName = "vfs",
 }
 
-function initrd.tryLoad(address, filePath, fileName)
+function initrd.tryLoad(address, filePath)
   local handle, reason = component.invoke(address, "open", filePath)
   assert(handle, reason)
   local buffer = ""
+
   repeat
     local data, reason = component.invoke(address, "read", handle, math.huge)
     buffer = buffer .. (data or "")
   until not data
   component.invoke(address, "close", handle)
-  return kernel.loadString(buffer, fileName)
+  --return initrd.kernel.base.load(buffer, fileName)
+  return buffer
 end
 
-function initrd.bootstrap(kernel, bootargs)
-  initrd.kernel = kernel
-  initrd.fsDriverLoader = kernel.utils.tcall(initrd.tryLoad, "Cannot load fsDriver: " 
-                                       .. initrd.fsDriverFilePath, 
-                                       computer.getBootAddress(), 
-                                       initrd.fsDriverFilePath, 
-                                       initrd.fsDriverName)
-  -- Get Fs driver
-  initrd.fsDriver = kernel.utils.tcall(initrd.fsDriverLoader, 
-                                              "Error while loading fsDriver")
-  initrd.fsDriverLoader = nil
+function initrd.bootstrap(kernel)
+  --initrd.kernel = kernel
+  --Fs driver
+  --[[initrd.fsDriverLoader = initrd.tryLoad(computer.getBootAddress(), 
+                                          initrd.fsDriverFilePath, 
+                                          initrd.fsDriverName)
+  initrd.fsDriver = initrd.fsDriverLoader()
+  initrd.fsDriverLoader = nil]]
 
   -- Load Filesystem module with the Fs driver
-  initrd.vfsDriverLoader = kernel.utils.tcall(initrd.tryLoad,  "Error while loading:" 
-                                                             .. initrd.vfsName, 
-                                                             computer.getBootAddress(), 
-                                                             initrd.vfsModulePath, initrd.vfsName)
-  
-  kernel.vfs = initrd.vfsDriverLoader().init("/", initrd.fsDriver, computer.getBootAddress())
-  initrd.vfsDriverLoader = nil
+  --[[kernel.modules.insmod( initrd.tryLoad(computer.getBootAddress(),
+                                        initrd.fsDriverPath),
+                                        initrd.fsDriverName)]]
+                                        
+  --local test = initrd.tryload(computer.getBootAddress(), initrd.vfsModulePath)
+ -- initrd.kernel.modules.insmod( test,
+   --                                     initrd.vfsName)
+  kernel.modules.insmod(initrd.tryLoad(computer.getBootAddress(),
+                                          initrd.vfsModulePath),
+                                          initrd.vfsName)
+  --error(computer.freeMemory())
   initrd.tryLoad = nil
 end
 
@@ -58,6 +60,5 @@ function initrd.boot()
 
 
 end
-
 
 return initrd

@@ -12,7 +12,6 @@
 local vfs = {}
 vfs.__index = vfs
 
-
 -------------------------------------------------------------------------------
 -- vfs helper methods
 
@@ -214,6 +213,9 @@ function vfs.init(rootMountpoint, rootDriver, rootDevice)
   self.rootNode.parent = self.rootNode
   self:mount("/", rootDriver.partitionType, rootDevice)
   return self
+end
+
+function vfs.insmod(kernel)
 end
 
 return vfs
