@@ -194,6 +194,18 @@ function vfs:open(path, options)
   return node.handle:open(pathRest, options)
 end
 
+function vfs:readFile(filePath)
+  local handle, reason = self:open(filePath, "r")
+  assert(handle, reason)
+  local buffer = ""
+  repeat
+    local data, reason = handle:read(math.huge)
+    buffer = buffer .. (data or "")
+  until not data
+  handle:close()
+  return buffer
+end
+
 -------------------------------------------------------------------------------
 -- vfs initialisation methods
 
@@ -219,13 +231,14 @@ end
 local actions = {
   attach = vfs.attach,
   mount = vfs.mount,
+  readFile = vfs.readFile,
 }
 
 local function ipc(vfs, kernel) 
   local src, pack, action
   while (true) do
-    src, action, pack = kernel.ipc.send(src, act, pack)
-    arg = actions[action](vfs, table.unpack(pack))
+    src, action, pack = kernel.ipc.send(src, action, pack)
+    pack = table.pack(actions[action](vfs, table.unpack(pack)))
   end
 end
 

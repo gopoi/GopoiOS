@@ -1,57 +1,68 @@
 --[[ POSIG/0.0.1
-	 Name: scheduler
-	 FullName: Scheduler for all the processTable that needs to run
-	 Package: net.gopoi.gopoios
-	 Version: 0.0.1
-	 Author: Simon Bastien-Filiatrault
-	 Dependencies: vmgopoz = 0.0.1, isolation.ko = 0.0.1 
-	 Arch: Portable
+  Name: scheduler
+  FullName: gopoiOS kernel
+  Package: net.gopoi.gopoios
+  Version: 0.0.1
+  Author: Shan B.
+  Date: 2015-04-25
+  Arch: portable
 ]]--
 
-local kernelAssert = kernelAssert
-local kernelPanic = kernalPanic
-local coroutine = coroutine
-local sandbox = require("isolation.ko")
+local sched = {}
+sched.__index = sched
 
 
---processTable
-local processTable = {}
 
---Definition of process object
-local process = {}
-process.__index = process
-process.posig = {}
 
-------------------------------------------------------------
---Working on process
-function process:resume() --it has been scheduled will return result and data for dispatch
 
-self.status = "running"
-result, data = coroutine.resume(self.coroutine)
-return result, data
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+-------------------------------------------------------------------------------
+-- sched initialisation methods
+function sched.init()
+  local self = setmetatable({
+    }, sched)
+  return self
+end
+
+-------------------------------------------------------------------------------
+-- sched IPC methods
+local actions = {
+
+}
+
+local function ipc(sched, kernel) 
+  local src, pack, action
+  while (true) do
+    src, action, pack = kernel.ipc.send(src, act, pack)
+    --arg = actions[action](sched, table.unpack(pack))
+  end
 end
 
 
-function process:exit()
+-------------------------------------------------------------------------------
+-- sched Module functions
 
+function sched.insmod(kernel, posig)
+  local co = coroutine.create(ipc)
+  local handle = sched.init()
+  local success, val = coroutine.resume(co, handle, kernel)
+  assert(success, val)
+  kernel.ipc.add(posig.name, co)
+  return handle
 end
 
-
-function process:new(parent, file, priority, posig)
-	self = setmetatable({}, self)
-	self.priority = priority
-	self.posig = posig
-	processTable[#processTable + 1] = self
-	process.status = "suspended"
-	self.couroutine = couroutine.create(kernel.loadFile(file, sandbox))
-end
-
-------------------------------------------------------------
-
-local function schedule()
-
-end
-
-
-
-return process, processTable, schedule
+return sched

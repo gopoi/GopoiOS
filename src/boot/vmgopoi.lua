@@ -205,7 +205,8 @@ end
 
 function kernel.modules.insmod(fileData)
   local img, posig = kernel.base.load(fileData)
-  assert(kernel.modules.loaded[posig.name] == nil, "Module " .. posig.name .. " already exists.", 2)
+  assert(kernel.modules.loaded[posig.name] == nil, "Module " .. posig.name .. 
+                                                    " already exists.", 2)
   assert(img, "Error while running module " .. posig.name, 2)
   assert(img.insmod, "No insmod found in module " .. posig.name, 2)
   local mod = {
@@ -229,13 +230,14 @@ end
 -------------------------------------------------------------------------------
 -- Kernel IPC functions
 function kernel.ipc.exists(name)
-  return not kernel.ipc.coroutines[name] == nil
+  return (kernel.ipc.coroutines[name])
 end
 
 function kernel.ipc.add(name, handle)
   assert(not kernel.ipc.exists(name), "Coroutine name already taken.")
   assert(handle, "Handle is nil.")
-  assert(type(handle) == "function" or type(handle) == "thread", "Handle must be a thread or a function.")
+  assert(type(handle) == "function" or type(handle) == "thread", 
+        "Handle must be a thread or a function.")
   if (type(handle) == "function") then
     handle = coroutine.create(handle)
   end
@@ -252,11 +254,11 @@ function kernel.ipc.send(dest, action,  args)
 end
 
 function kernel.ipc.sendk(dest, src, action, arg)
-  newDest, action, arg = coroutine.resume(kernel.ipc.coroutines[dest], src, action, arg)
-  if (coroutine.status(kernel.ipc.coroutines[dest]) == "dead") then
-    error(tostring(action))
-  end
-  return newDest, action, arg
+  local success
+  success, dest, action, arg = coroutine.resume(kernel.ipc.coroutines[dest], 
+                                                src, action, arg)
+  assert(success, dest)
+  return dest, action, arg
 end
 -- Kernel IPC utilities
 -------------------------------------------------------------------------------
@@ -265,7 +267,8 @@ end
 -- Kernel Main functions
 function kernel.base.load(data)
   local posig = kernel.posig.parseHeader(data)
-  assert(kernel.posig.isCompatible(posig), "Architecture not compatible.", 0)
+  assert(kernel.posig.isCompatible(posig), "Architecture not compatible: " .. 
+                                            tostring(posig.arch), 0)
   local ctor, err = load(data, "=" .. posig.name)
   assert(ctor, err)
   return ctor(), posig
@@ -295,15 +298,16 @@ function kernel.base.run()
   local _assert = assert
   local _res = coroutine.resume
   local coroutines = kernel.ipc.coroutines
-  local dest, src, action, packet, newDest 
+  local dest, src, action, packet, newDest, success 
   dest = ret[1]
   action = ret[2]
   pack = ret[3]
   src = "kernel"
   assert(dest and type(dest) == "string", "No first Coroutine, Halting!")
-  while (kernel.base.runlevel > 0 and kernel.base.runlevel < 6) do 
-    _assert(exists(dest), "Bad destination")
-    newDest, action, pack = _res(coroutines[dest], src, action, pack)
+  while (dest ~= "kernel") do 
+    _assert(exists(dest), "Bad destination: " .. dest)
+    success, newDest, action, pack = _res(coroutines[dest], src, action, pack)
+    assert(success, newDest)
     src = dest
     dest = newDest
   end
@@ -322,5 +326,5 @@ if not success then
   kernel.asserting.panic(result, kernel)
 else
   local catch = kernel.asserting.catch("Kernel exited run mode")
-  kernel.asserting.panic(catch)
+  kernel.asserting.panic(catch, kernel)
 end
