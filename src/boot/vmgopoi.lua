@@ -33,6 +33,8 @@ local kernel = {
     coroutines = {},
   },
 }
+
+local assertedTables = {}
 -- Kernel Declarations
 -------------------------------------------------------------------------------
 
@@ -55,7 +57,8 @@ function kernel.asserting.recusiveFormatTable(info, level)
   tab = tab .. "|"
   for i, v in pairs(info) do
     str = str .. tab .. "->" .. tostring(i) .. " : " .. tostring(v) .. "\n"
-    if (type(v) == "table" and (next(v) ~= nil) and i ~= "__index") then
+    if (type(v) == "table" and (next(v) ~= nil) and assertedTables[i] == nil) then
+      assertedTables[i] = v
       str = str .. kernel.asserting.recusiveFormatTable(v, level + 1)  .. tab .. "\n"
     end
   end
@@ -69,6 +72,7 @@ function kernel.asserting.panic(catch, ...)
   if (type(msg) == "table") then
     table.insert(info, 1, msg)
   end
+  assertedTables = {}
   error("\n-------------- Catastrophic Derp occurred! --------------\n" ..
         "A fatal error occurred in the kernel and broke everything.\n" ..
         "Error message: " .. tostring((msg)) .. "\n" ..
@@ -199,24 +203,25 @@ function kernel.modules.unprobe(name)
   end]]
 end
 
-function kernel.modules.insmod(fileData, name)
-  assert(kernel.modules.loaded[name] == nil, "Module " .. name .. " already exists.", 2)
-  local img, posig = kernel.base.load(fileData, name)
+function kernel.modules.insmod(fileData)
+  local img, posig = kernel.base.load(fileData)
+  assert(kernel.modules.loaded[posig.name] == nil, "Module " .. posig.name .. " already exists.", 2)
+  assert(img, "Error while running module " .. posig.name, 2)
+  assert(img.insmod, "No insmod found in module " .. posig.name, 2)
   local mod = {
-    handle = img,
+    handle = img.insmod(kernel, posig),
     posig = posig,
   }
-  assert(mod.handle, "Error while running module " .. name, 2)
-  assert(mod.handle.insmod, "No insmod found in module " .. name, 2)
-  mod.handle.insmod(kernel)
-
-  kernel.modules.loaded[name] = mod
+  kernel.modules.loaded[posig.name] = mod
 end
 
+function kernel.modules.get(name)
+  assert(kernel.modules.loaded[name], "Module not found")
+  return kernel.modules.loaded[name]
+end
+
+
 function kernel.modules.rmmod(name)
-  --[[assert(kernel.modules.name, "Module not found")
-  kernel.modules.unprobe(name)
-  kernel.modules.loaded[name] = nil]]
 end
 -- Kernel Modules utilities
 -------------------------------------------------------------------------------
@@ -242,29 +247,39 @@ function kernel.ipc.remove()
   kernel.ipc.coroutines[name] = nil
 end
 
-function kernel.ipc.send(dest, ...)
-  return coroutine.yield(dest, table.pack(...))
+function kernel.ipc.send(dest, action,  args)
+  return coroutine.yield(dest, action, args)
+end
+
+function kernel.ipc.sendk(dest, src, action, arg)
+  newDest, action, arg = coroutine.resume(kernel.ipc.coroutines[dest], src, action, arg)
+  if (coroutine.status(kernel.ipc.coroutines[dest]) == "dead") then
+    error(tostring(action))
+  end
+  return newDest, action, arg
 end
 -- Kernel IPC utilities
 -------------------------------------------------------------------------------
 
 -------------------------------------------------------------------------------
 -- Kernel Main functions
-function kernel.base.load(data, name)
+function kernel.base.load(data)
   local posig = kernel.posig.parseHeader(data)
   assert(kernel.posig.isCompatible(posig), "Architecture not compatible.", 0)
-  local ctor, err = load(data, "=" .. name)
+  local ctor, err = load(data, "=" .. posig.name)
   assert(ctor, err)
   return ctor(), posig
 end
 
 function kernel.base.boot(...)
-  local bootargs = table.pack(...)[1] 
+  local bootargs = ...
   assert(bootargs, "No bootargs found, Halting!", 0)
   assert(bootargs.initrd, "No initrd file found, Halting!", 0)
   assert(bootargs.arch, "No arch found, Halting!")
+  assert(bootargs.root, "No root found, Halting!")
   kernel.base.arch = bootargs.arch
-  kernel.base.initrd = kernel.base.load(bootargs.initrd, bootargs.initrdName)
+  kernel.base.initrd = kernel.base.load(bootargs.initrd)
+  kernel.base.root = bootargs.root
   local first = kernel.base.initrd.bootstrap(kernel)
   if (first and type(first) == "string") then
     assert(kernel.ipc.exists(first), "Error when setting first coroutine")
@@ -275,16 +290,22 @@ end
 
 function kernel.base.run()
   local ret = table.pack(kernel.base.initrd.boot(kernel))
-  kernel.base.initrd = nil
-  assert(first, "No first Coroutine, Halting!")
-  local dest, packet = kernel.ipc.coroutines[first].resume("kernel", ret)
+  kernel.base.initrd = nil 
   local exists = kernel.ipc.exists
   local _assert = assert
-  local resume = coroutine.resume
+  local _res = coroutine.resume
   local coroutines = kernel.ipc.coroutines
-  while (kernel.base.runlevel > 0 and kernel.base.runlevel < 6) do
+  local dest, src, action, packet, newDest 
+  dest = ret[1]
+  action = ret[2]
+  pack = ret[3]
+  src = "kernel"
+  assert(dest and type(dest) == "string", "No first Coroutine, Halting!")
+  while (kernel.base.runlevel > 0 and kernel.base.runlevel < 6) do 
     _assert(exists(dest), "Bad destination")
-    dest, packet = resume(coroutines[dest], packet)
+    newDest, action, pack = _res(coroutines[dest], src, action, pack)
+    src = dest
+    dest = newDest
   end
   --TODO: better shutdown
 end
@@ -301,5 +322,5 @@ if not success then
   kernel.asserting.panic(result, kernel)
 else
   local catch = kernel.asserting.catch("Kernel exited run mode")
-  kernel.asserting.panic(catch, kernel)
+  kernel.asserting.panic(catch)
 end

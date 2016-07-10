@@ -11,7 +11,6 @@
 
 local vfs = {}
 vfs.__index = vfs
-
 -------------------------------------------------------------------------------
 -- vfs helper methods
 
@@ -126,11 +125,11 @@ end
 -------------------------------------------------------------------------------
 -- vfs mounting methods
 
-function vfs:mount(mountpoint, mountpointType, device)
+function vfs:mount(mountpoint, device)
   assert(type(mountpoint) == "string", "Bad argument #1: string expected")
-  assert(type(mountpointType) == "string", "Bad argument #2: string expected")
-  assert(self.drivers[mountpointType], "Type not found: " .. mountpointType)
-  local mountpointDriver = self.drivers[mountpointType].init(device)
+  assert(type(device) == "table", "Bad argument #2: table expected")
+  assert(self.drivers[device.type], "Type not found: " .. device.type)
+  local mountpointDriver = self.drivers[device.type].init(device.handle)
   
   local node, pathRest = getNode(self, mountpoint)
   if pathRest == "" then
@@ -191,16 +190,14 @@ function vfs:open(path, options)
   assert(type(path) == "string", "Bad argument #1: string expected")
   assert(type(options) == "string", "Bad argument #2: string expected")
   local _, _, node, pathRest = getNode(self, path)
-  --assert(false, node.name)
   assert(node.handle:exists(pathRest), "Error, file not found!")
   return node.handle:open(pathRest, options)
 end
 
-
 -------------------------------------------------------------------------------
 -- vfs initialisation methods
 
-function vfs.init(rootMountpoint, rootDriver, rootDevice)
+function vfs.init()
   local self = setmetatable({
     drivers = {},
     rootNode = {
@@ -209,13 +206,37 @@ function vfs.init(rootMountpoint, rootDriver, rootDevice)
       name = "",
       },
     }, vfs)
-  self:attach(rootDriver)
+  --self:attach(rootDriver)
   self.rootNode.parent = self.rootNode
-  self:mount("/", rootDriver.partitionType, rootDevice)
+  --self:mount("/", rootDevice)
   return self
 end
 
-function vfs.insmod(kernel)
+
+
+-------------------------------------------------------------------------------
+-- vfs IPC methods
+local actions = {
+  attach = vfs.attach,
+  mount = vfs.mount,
+}
+
+local function ipc(vfs, kernel) 
+  local src, pack, action
+  while (true) do
+    src, action, pack = kernel.ipc.send(src, act, pack)
+    arg = actions[action](vfs, table.unpack(pack))
+  end
 end
 
+-------------------------------------------------------------------------------
+-- vfs Module functions
+function vfs.insmod(kernel, posig)
+  local co = coroutine.create(ipc)
+  local handle = vfs.init()
+  local success, val = coroutine.resume(co, handle, kernel)
+  assert(success, val)
+  kernel.ipc.add(posig.name, co)
+  return handle
+end
 return vfs

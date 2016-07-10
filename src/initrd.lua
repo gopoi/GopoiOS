@@ -31,6 +31,7 @@ function initrd.tryLoad(address, filePath)
 end
 
 function initrd.bootstrap(kernel)
+  local root = kernel.base.root
   --initrd.kernel = kernel
   --Fs driver
   --[[initrd.fsDriverLoader = initrd.tryLoad(computer.getBootAddress(), 
@@ -47,10 +48,16 @@ function initrd.bootstrap(kernel)
   --local test = initrd.tryload(computer.getBootAddress(), initrd.vfsModulePath)
  -- initrd.kernel.modules.insmod( test,
    --                                     initrd.vfsName)
-  kernel.modules.insmod(initrd.tryLoad(computer.getBootAddress(),
+  kernel.modules.insmod(initrd.tryLoad(root.handle,
                                           initrd.vfsModulePath),
                                           initrd.vfsName)
+                                        
+  kernel.modules.insmod(initrd.tryLoad(root.handle,
+                                        initrd.fsDriverPath),
+                                        initrd.fsDriverName)
   --error(computer.freeMemory())
+  --error(kernel.modules.loaded.vfs.handle.drivers)
+  kernel.ipc.sendk("vfs", "initrd", "mount", table.pack("/", root))
   initrd.tryLoad = nil
 end
 

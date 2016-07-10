@@ -13,13 +13,16 @@ local bootloader = {
   kernelFilePath = "/boot/vmgopoi.lua",
   initrdFilePath = "/initrd.lua",
   kernelArgs = {
-    root = computer.getBootAddress(),
-    initrdName = "initrd",
+    root = {
+      handle = computer.getBootAddress(),
+      type = "filesystem",
+    },
+    initrd = nil,
     locale = unicode,
     arch = "opencomputers",
   },
   invokeHandle = component.invoke
- }
+}
 
 
 -- Map base components for the bootstrapping process

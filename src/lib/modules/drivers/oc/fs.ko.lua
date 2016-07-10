@@ -1,5 +1,5 @@
 --[[ POSIG/0.0.1
-  Name: filesystem
+  Name: ocfilesystem
   FullName: OpenComputers Filesystem Driver
   Package: net.gopoi.gopoios
   Author: Shan B.
@@ -192,6 +192,10 @@ function ocFs.init(device)
   self.invoker = invoker
   self.openedFiles = {}
   return self
+end
+
+function ocFs.insmod(kernel, posig)
+  kernel.ipc.sendk("vfs", posig.name, "attach", table.pack(ocFs))
 end
 
 -------------------------------------------------------------------------------
