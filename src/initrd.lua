@@ -8,15 +8,16 @@
 ]]--
 
 local initrd = {
-  fsDriverName = "ocFs",
-  fsDriverPath = "/lib/modules/drivers/oc/fs.ko.lua",
-  vfsModulePath = "/lib/modules/vfs.ko.lua",
-  schedPath = "/lib/modules/scheduler.ko.lua",
-  vfsName = "vfs",
+  fsD = "ocfs",
+  vfs = "vfs",
+  modulesPath = {
+    "/lib/modules/",
+    "/lib/modules/drv/oc/",
+      },
 }
 
 function initrd.tryLoad(address, filePath)
-  local handle, reason = component.invoke(address, "open", filePath)
+  local handle, reason = component.invoke(address, "open", filePath .. ".ko.lua")
   assert(handle, reason)
   local buffer = ""
   repeat
@@ -29,26 +30,43 @@ end
 
 function initrd.bootstrap(kernel)
   local root = kernel.base.root
+  local mp = initrd.modulesPath
+  kernel.utils.setSetting("modulesPath", initrd.modulesPath)
+  -- VFS
   kernel.modules.insmod(initrd.tryLoad(root.handle,
-                                          initrd.vfsModulePath),
-                                          initrd.vfsName)
-                                        
+                                       mp[1] .. initrd.vfs))
+  -- FS Driver         
   kernel.modules.insmod(initrd.tryLoad(root.handle,
-                                        initrd.fsDriverPath),
-                                        initrd.fsDriverName)
-  kernel.ipc.sendk("vfs", "initrd", "mount", table.pack("/", root))
-  initrd.tryLoad = nil
+                                       mp[2] .. initrd.fsD))
+  -- Mount root
+  local ocfs = require("ocfs")
+  local vfs = require("vfs")
+  local devs = ocfs.probe()
+  local dev = devs[root.handle]
+  vfs.mount("/", "ocfs", dev:open())
+  -- Setup udev
+  local udev = require("udev")
+  vfs.mount("/dev", "fakefs", udev)
+  udev.attach(ocfs.devClass, ocfs)
+  udev.refresh()
+ 
+ 
+  local file = vfs.openFile("/test.txt", "r") 
+  
+  error(file:read(2))
+  
+  error(drv)
+  error("OK")
+  return true
 end
 
-
-function initrd.boot(kernel)
-  local _, _, pack = kernel.ipc.sendk("vfs", "initrd", "readFile", table.pack(initrd.schedPath))
-  local file = table.unpack(pack)
-  kernel.modules.insmod(file)
+function initrd.boot()
+  require("scheduler")
+  require("fakefs")
+  require("udev")
   
-  
-  
-  return "scheduler", "start"
+  error(computer.freeMemory())
+  return "scheduler", "start", table.pack()
 end
 
 return initrd

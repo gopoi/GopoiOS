@@ -8,12 +8,59 @@
   Arch: portable
 ]]--
 
+local vfs = {
+  drivers = {},
+  rootNode = {
+    child = {},
+    handle = nil,
+    name = "",
+  },
+  bare = {
+    loadfile = loadfile,
+    dofile = dofile,
+    require = require,
+  },
+}
+vfs.rootNode.parent = vfs.rootNode
+-------------------------------------------------------------------------------
+-- vfs overload methods
+loadfile = function(name, env)
+  local _, _, pack = vfs.readFile(name .. ".lua")
+  return load(pack[1], env)
+end
 
-local vfs = {}
-vfs.__index = vfs
+local function search(pathList, name, ext)
+  for _, v in ipairs(pathList) do
+    if vfs.fileExists(v .. name .. ext) == true then
+      return v .. name .. ext
+    end
+  end
+end
+
+dofile = function(name, env)
+  return loadfile(name, env)()
+end
+
+require = function(name)
+  local kernel = vfs.bare.require("kernel")
+  if kernel.modules.isLoaded(name) then
+    return kernel.modules.get(name)
+  else
+    local path = search(kernel.utils.getSetting("modulesPath"),
+                                                name, ".ko.lua")   
+    if path then
+      local file = vfs.readFile(path)
+      return kernel.modules.insmod(file).handle
+    else
+      return nil
+    end
+  end
+end
+-- vfs overload methods
+-------------------------------------------------------------------------------
+
 -------------------------------------------------------------------------------
 -- vfs helper methods
-
 function vfs.segments(path)
   path = path:gsub("\\", "/")
   repeat local n; path, n = path:gsub("//", "/") until n == 0
@@ -40,32 +87,23 @@ function vfs.segments(path)
   return parts
 end
 
-function vfs.canonical(path)
+--[[function vfs.canonical(path)
   local result = table.concat(vfs.segments(path), "/")
-  if locale.sub(path, 1, 1) == "/" then
-    return "/" .. result
-  else
-    return result
-  end
+  return result
+end]]
+
+function vfs.formatPath(file)
+  local segs = vfs.segments(file)
+  local fileName = segs[#segs]
+  table.remove(segs)
+  local path = table.concat(segs, "/")
+  return path, fileName
 end
+-- vfs helper methods
+-------------------------------------------------------------------------------
 
 -------------------------------------------------------------------------------
 -- vfs local methods
-
-local function retrievePath(node)
-  local oldNode = nil
-  local path = ""
-  while node ~= oldNode and node.name ~= "" do
-    path = "/" .. node.name .. path
-    oldNode = node
-    node = node.parent
-  end
-  if path == "" then 
-    path = "/"
-  end
-  return path
-end
-
 local function getNode(self, path)
   local node = self.rootNode
   local parts = vfs.segments(path)
@@ -110,92 +148,79 @@ local function createNode(self, path)
   return node
 end
 
-local function listNodes(node, ret)
+local function listHNodes(node, ret)
   if ret == nil then
     ret = {}
   end
-  table.insert(ret, node)
+  if node.handle then
+    table.insert(ret, node)
+  end
   for _, v in pairs(node.child) do
     listNodes(v, ret)
   end
   return ret
 end
-
+-- vfs local methods
+-------------------------------------------------------------------------------
 
 -------------------------------------------------------------------------------
 -- vfs mounting methods
-
-function vfs:mount(mountpoint, device)
+function vfs.mount(mountpoint, mounttype, dev)
   assert(type(mountpoint) == "string", "Bad argument #1: string expected")
-  assert(type(device) == "table", "Bad argument #2: table expected")
-  assert(self.drivers[device.type], "Type not found: " .. device.type)
-  local mountpointDriver = self.drivers[device.type].init(device.handle)
-  
-  local node, pathRest = getNode(self, mountpoint)
+  assert(type(mounttype) == "string", "Bad argument #2: string expected")
+  assert(type(dev) == "table", "Bad argument #3: table expected")
+  assert(vfs.drivers[mounttype], "Type not found: " .. mounttype)
+  local mountpointDriver = vfs.drivers[mounttype].new(dev)
+  local node, pathRest = getNode(vfs, mountpoint)
   if pathRest == "" then
     assert(not node.handle, "Mountpoint exists!")
     node.handle = mountpointDriver
   else
     assert(node.handle, "Error while trying to find mountpoint!")
-    assert(node.handle:exists(pathRest), "Path doesn't exists!")
-    node = createNode(self, mountpoint)
+    --assert(node.handle:exists(pathRest), "Path doesn't exists!") --TODO: uncomment when mkdir works
+    node = createNode(vfs, mountpoint)
     node.handle = mountpointDriver
   end
 end
 
-function vfs:umount(mountpoint)
-  
+function vfs.attach(mounttype, driver)
+  assert(not vfs.drivers[mounttype], "Driver already exists!")
+  vfs.drivers[mounttype] = driver
 end
-
-function vfs:mounts()
-  nodes = listNodes(self.rootNode)
-  local mounts = {}
-  for _, v in pairs(nodes) do
-    if v.handle then
-      local name = v.handle:getLabel()
-      mounts[name] = {
-        handle = v.handle,
-        name = name,
-        path = retrievePath(v),
-        device = v.handle.device,
-      }
-    end
-  end
-  return mounts
-end
-
-function vfs:attach(driver)
-  self.drivers[driver.partitionType] = driver
-end
-
-function vfs:listMountable()
-  local out = {}
-  for _, v in pairs(self.drivers) do
-    local drives = v.listConnectedDevices()
-    out[v.getPartitionType()] = drives
-  end
-  return out
-end
-
-function vfs:findDrive(driveType, label)
-  assert(self.drivers[driveType], "Partition type not found")
-  return self.drivers[driveType].findDrive(label)
-end
-
+-- vfs mounting methods
+-------------------------------------------------------------------------------
 
 -------------------------------------------------------------------------------
--- IO/file namespaces lua override
-
-function vfs:open(path, options)
+-- vfs file methods
+function vfs.fileExists(path)
   assert(type(path) == "string", "Bad argument #1: string expected")
-  assert(type(options) == "string", "Bad argument #2: string expected")
-  local _, _, node, pathRest = getNode(self, path)
-  assert(node.handle:exists(pathRest), "Error, file not found!")
-  return node.handle:open(pathRest, options)
+  local _, _, node, pathRest = getNode(vfs, path)
+  if node.handle then
+    return node.handle:exists(pathRest)-- and not node.handle:isDirectory(pathRest)
+  end
+  return false
 end
 
-function vfs:readFile(filePath)
-  local handle, reason = self:open(filePath, "r")
+function vfs.pathExists(path)
+  assert(type(path) == "string", "Bad argument #1: string expected")
+  local pathonly = vfs.formatPath(path)
+  local _, _, node, pathRest = getNode(vfs, pathonly)
+  if node.handle then
+    return node.handle:exists(pathRest) and node.handle:isDirectory(pathRest)
+  end
+  return false
+end
+
+function vfs.openFile(path, options)
+  assert(type(path) == "string", "Bad argument #1: string expected")
+  assert(type(options) == "string", "Bad argument #2: string expected")
+  local _, _, node, pathRest = getNode(vfs, path)
+  assert(vfs.pathExists(pathRest), "Error, path not found!")
+  return node.handle:openFile(pathRest, options)
+end
+
+function vfs.readFile(filePath)
+  local handle, reason = vfs.openFile(filePath, "r")
   assert(handle, reason)
   local buffer = ""
   repeat
@@ -206,50 +231,19 @@ function vfs:readFile(filePath)
   return buffer
 end
 
+-- vfs file methods
 -------------------------------------------------------------------------------
--- vfs initialisation methods
-
-function vfs.init()
-  local self = setmetatable({
-    drivers = {},
-    rootNode = {
-      child = {},
-      handle = nil,
-      name = "",
-      },
-    }, vfs)
-  --self:attach(rootDriver)
-  self.rootNode.parent = self.rootNode
-  --self:mount("/", rootDevice)
-  return self
-end
-
-
 
 -------------------------------------------------------------------------------
--- vfs IPC methods
-local actions = {
-  attach = vfs.attach,
-  mount = vfs.mount,
-  readFile = vfs.readFile,
-}
-
-local function ipc(vfs, kernel) 
-  local src, pack, action
-  while (true) do
-    src, action, pack = kernel.ipc.send(src, action, pack)
-    pack = table.pack(actions[action](vfs, table.unpack(pack)))
-  end
+-- vfs module methods
+function vfs.insmod(posig)
+  --local kernel = require("kernel")
+  --local co = coroutine.create(ipc)
+  --local handle = vfs.init()
+  --local success, val = coroutine.resume(co, handle, kernel)
+  --assert(success, val)
+  --kernel.ipc.add(posig.name, co)
+  return vfs
 end
 
--------------------------------------------------------------------------------
--- vfs Module functions
-function vfs.insmod(kernel, posig)
-  local co = coroutine.create(ipc)
-  local handle = vfs.init()
-  local success, val = coroutine.resume(co, handle, kernel)
-  assert(success, val)
-  kernel.ipc.add(posig.name, co)
-  return handle
-end
 return vfs

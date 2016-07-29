@@ -1,4 +1,12 @@
-
+--[[ POSIG/0.0.1
+  Name: isolation
+  FullName: gopoiOS Kernel helpers
+  Package: net.gopoi.gopoios
+  Version: 0.0.1
+  Author: Shan B.
+  Date: 2015-04-25
+  Arch: portable
+]]--
 
 --Sandboxed? environemnt
 local sandbox = {
@@ -21,7 +29,7 @@ local sandbox = {
 	tonumber = tonumber,
 	tostring = tostring,
 	type	= 	type,
-	_VERSION = "Lua 5.2",
+	_VERSION = _VERSION,
 	xpcall	= xpcall,
 	coroutine = coroutine,
 	string = { --because modifying string can be unsecure
@@ -79,7 +87,7 @@ local sandbox = {
 		tan = math.tan,
 		tanh = math.tanh
 	},
-	bit32 = {
+	--[[bit32 = {
 		arshift = bit32.arshift,
 		band = bit32.band,
 		bnot = bit32.bnot,
@@ -98,7 +106,7 @@ local sandbox = {
 		write = io.write,
 		flush = io.flush,
 		type = io.type,
-	},
+	},]]
 	os	=  {
 		clock = os.clock,
 		date = os.date,
@@ -117,10 +125,4 @@ local sandbox = {
 }
 sandbox._G = sandbox
 
-sandbox.os.exit = function (code)
-
-end
-
-sandbox.os.execute = function () 
-
-end
+return sandbox

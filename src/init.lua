@@ -20,10 +20,10 @@ local bootloader = {
     initrd = nil,
     locale = unicode,
     arch = "opencomputers",
+    binmode = "t"
   },
   invokeHandle = component.invoke
 }
-
 
 -- Map base components for the bootstrapping process
 function bootloader.invoke(address, method, ...) -- From OpenComputers Lua BIOS
@@ -35,7 +35,7 @@ function bootloader.invoke(address, method, ...) -- From OpenComputers Lua BIOS
   end
 end
 
-function bootloader.tryLoad(address, filePath, fileName)
+function bootloader.tryLoad(address, filePath)
   local handle, reason = bootloader.invoke(address, "open", filePath)
   if not handle then
     return nil, reason
@@ -82,12 +82,12 @@ bootloader.kernel, reason = bootloader.tryLoad(computer.getBootAddress(), bootlo
 if not bootloader.kernel then
   error("Cannot load Kernel:" .. bootloader.kernelFilePath .. " :" .. tostring(reason))
 end
+bootloader.kernelArgs.posig = bootloader.kernel
 bootloader.kernel = load(bootloader.kernel, "=" .. bootloader.kernelName)
 
 ---- Cleanup some shits
 bootloader.tryLoad = nil
 ---- Boot kernel
---bootloader.kernelArgs.fsDriver = bootloader.fsDriver
 bootloader.kernelArgs.initrd = bootloader.initrd
 success, reason = pcall(bootloader.kernel, bootloader.kernelArgs) -- pass a table as an arg for now
 

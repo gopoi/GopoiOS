@@ -1,5 +1,5 @@
 --[[ POSIG/0.0.1
-  Name: vmgopoz
+  Name: vmgopoi
   FullName: gopoiOS kernel
   Package: net.gopoi.gopoios
   Version: 0.0.1
@@ -19,7 +19,12 @@ local kernel = {
     arch = nil,
     locale = nil,
     initrd = nil,
-    --header = nil,
+    binmode = nil,
+    posig = nil,
+  },
+  bare = {
+    load = load,
+    require = require,
   },
   posig = {
     utils = {},
@@ -29,9 +34,16 @@ local kernel = {
     logs = {},
   },
   utils = {},
+  exec = {},
   ipc = {
     coroutines = {},
   },
+  settings = {},
+}
+
+kernel.modules.loaded.kernel = {
+  handle = kernel,
+  posig = kernel.base.posig
 }
 
 local assertedTables = {}
@@ -93,48 +105,6 @@ end
 -------------------------------------------------------------------------------
 
 -------------------------------------------------------------------------------
--- Kernel Utils utilities
-function kernel.utils.uptime() -- This function must be ovverided by a module
-  return 0
-end
-
-function kernel.utils.setRunLevel(runlevel)
-  assert(runlevel >= 0 and runlevel <= 6, "invalid runlevel!")
-  kernel.base.runlevel = runlevel
-end
--- Kernel Utils features
--------------------------------------------------------------------------------
-
--------------------------------------------------------------------------------
--- Kernel LOG utilities
-function kernel.logging.log(level, msg, time)
-  local log = {
-    level = level,
-    msg = msg,
-    time = time or kernel.utils.uptime(),
-  }
-  kernel.logging.logs:insert(log)
-end
-
-function kernel.logging.dinfo(msg, time)
-  kernel.logging.log(0, msg, time)
-end
-
-function kernel.logging.dwarn(msg, time)
-  kernel.logging.log(1, msg, time)
-end
-
-function kernel.logging.derr(msg, time)
-  kernel.logging.log(2, msg, time)
-end
-
-function kernel.logging.dcrit(msg, time)
-  kernel.logging.log(3, msg, time)
-end
--- Kernel LOG features
--------------------------------------------------------------------------------
-
--------------------------------------------------------------------------------
 -- Kernel POSIG utilities
 function kernel.posig.utils.getHeader(data)
   local start = string.find(data, "POSIG")
@@ -173,6 +143,7 @@ end
 function kernel.posig.parseHeader(data)
   local header = kernel.posig.utils.getHeader(data)
   local expressions = kernel.posig.utils.formatHeader(header)
+  header = nil
   local isPosig, ver = kernel.posig.utils.checkHeader(expressions)
   assert(isPosig, "No POSIG header found.", 2)
   table.remove(expressions, 1)
@@ -188,39 +159,115 @@ end
 -------------------------------------------------------------------------------
 
 -------------------------------------------------------------------------------
--- Kernel Modules utilities
-function kernel.modules.probe(name)
-  
-  
-  
+-- Kernel Utils utilities
+function kernel.utils.uptime() -- This function must be ovverided by a module
+  return 0
 end
 
-function kernel.modules.unprobe(name)
-  --[[if kernel.modules.loaded[name].unprobe then
-    kernel.modules.loaded[name].unprobe()
+function kernel.utils.setRunLevel(runlevel)
+  assert(runlevel >= 0 and runlevel <= 6, "invalid runlevel!")
+  kernel.base.runlevel = runlevel
+end
+
+function kernel.utils.setSetting(key, val)
+  kernel.settings[key] = val
+end
+
+function kernel.utils.getSetting(key)
+  return kernel.settings[key]
+end
+-- Kernel Utils features
+-------------------------------------------------------------------------------
+
+-------------------------------------------------------------------------------
+-- Kernel Load utilities
+function kernel.exec.load(data, env)
+  local posig = kernel.posig.parseHeader(data)
+  assert(kernel.posig.isCompatible(posig), "Architecture not compatible: " .. 
+                                            tostring(posig.arch), 0)
+  local ctor, err = kernel.bare.load(data, "=" .. posig.name, 
+                                     kernel.base.binmode, env)
+  assert(ctor, err)
+  return ctor, posig
+end
+
+function kernel.exec.exec(data, env)
+  local ctor, posig = kernel.exec.load(data, env)
+  return ctor(), posig
+end
+
+load = function(data, env)
+  return kernel.exec.load(data, env)
+end
+
+require = function(name)
+  if kernel.modules.isLoaded(name) then
+    return kernel.modules.get(name)
   else
-    kernel.logging.derr("Module " .. tostring(name) .. " cannot be unprobed")
-  end]]
+    return nil
+  end
+end
+-- Kernel Load features
+-------------------------------------------------------------------------------
+
+-------------------------------------------------------------------------------
+-- Kernel LOG utilities
+function kernel.logging.log(level, msg, time)
+  local log = {
+    level = level,
+    msg = msg,
+    time = time or kernel.utils.uptime(),
+  }
+  kernel.logging.logs:insert(log)
 end
 
+function kernel.logging.dinfo(msg, time)
+  kernel.logging.log(0, msg, time)
+end
+
+function kernel.logging.dwarn(msg, time)
+  kernel.logging.log(1, msg, time)
+end
+
+function kernel.logging.derr(msg, time)
+  kernel.logging.log(2, msg, time)
+end
+
+function kernel.logging.dcrit(msg, time)
+  kernel.logging.log(3, msg, time)
+end
+-- Kernel LOG features
+-------------------------------------------------------------------------------
+
+-------------------------------------------------------------------------------
+-- Kernel Modules utilities
 function kernel.modules.insmod(fileData)
-  local img, posig = kernel.base.load(fileData)
+  local img, posig = kernel.exec.exec(fileData)
   assert(kernel.modules.loaded[posig.name] == nil, "Module " .. posig.name .. 
                                                     " already exists.", 2)
   assert(img, "Error while running module " .. posig.name, 2)
   assert(img.insmod, "No insmod found in module " .. posig.name, 2)
   local mod = {
-    handle = img.insmod(kernel, posig),
+    handle = img.insmod(posig),
     posig = posig,
   }
   kernel.modules.loaded[posig.name] = mod
+  return mod
+end
+
+function kernel.modules.isLoaded(name)
+  return (type(kernel.modules.loaded[name]) == "table")
 end
 
 function kernel.modules.get(name)
   assert(kernel.modules.loaded[name], "Module not found")
-  return kernel.modules.loaded[name]
+  return kernel.modules.loaded[name].handle
 end
 
+function kernel.modules.getPosig(name)
+  assert(kernel.modules.loaded[name], "Module not found")
+  return kernel.modules.loaded[name].posig
+end
 
 function kernel.modules.rmmod(name)
 end
@@ -265,34 +312,32 @@ end
 
 -------------------------------------------------------------------------------
 -- Kernel Main functions
-function kernel.base.load(data)
-  local posig = kernel.posig.parseHeader(data)
-  assert(kernel.posig.isCompatible(posig), "Architecture not compatible: " .. 
-                                            tostring(posig.arch), 0)
-  local ctor, err = load(data, "=" .. posig.name)
-  assert(ctor, err)
-  return ctor(), posig
-end
-
 function kernel.base.boot(...)
   local bootargs = ...
   assert(bootargs, "No bootargs found, Halting!", 0)
   assert(bootargs.initrd, "No initrd file found, Halting!", 0)
-  assert(bootargs.arch, "No arch found, Halting!")
-  assert(bootargs.root, "No root found, Halting!")
+  assert(bootargs.arch, "No arch found, Halting!", 0)
+  assert(bootargs.root, "No root found, Halting!", 0)
+  assert(bootargs.posig, "No posig susbystem found, Halting!", 0)
   kernel.base.arch = bootargs.arch
-  kernel.base.initrd = kernel.base.load(bootargs.initrd)
+  kernel.base.initrd = kernel.exec.exec(bootargs.initrd)
   kernel.base.root = bootargs.root
-  local first = kernel.base.initrd.bootstrap(kernel)
-  if (first and type(first) == "string") then
-    assert(kernel.ipc.exists(first), "Error when setting first coroutine")
-    kernel.ipc.first = first
+  kernel.base.posig = kernel.posig.parseHeader(bootargs.posig)
+  kernel.base.binmode = bootargs.binmode
+  bootargs.posig = nil
+  bootargs.initrd = nil
+  bootargs.root = nil
+  bootargs.arch = nil
+  bootargs = nil
+  local success = kernel.base.initrd.bootstrap(kernel)
+  if not success then
+    error("Could not bootstrap the kernel, Halting!")
   end
   kernel.utils.setRunLevel(1)
 end
 
 function kernel.base.run()
-  local ret = table.pack(kernel.base.initrd.boot(kernel))
+  local ret = table.pack(kernel.base.initrd.boot())
   kernel.base.initrd = nil 
   local exists = kernel.ipc.exists
   local _assert = assert
@@ -313,6 +358,8 @@ function kernel.base.run()
   end
   --TODO: better shutdown
 end
+-- Kernel Main functions
+-------------------------------------------------------------------------------
 
 -------------------------------------------------------------------------------
 -- Kernel Entry point
