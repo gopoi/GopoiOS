@@ -68,13 +68,17 @@ function kernel.asserting.recusiveFormatTable(info, level)
   end
   tab = tab .. "|"
   for i, v in pairs(info) do
-    str = str .. tab .. "->" .. tostring(i) .. " : " .. tostring(v) .. "\n"
-    if (type(v) == "table" and (next(v) ~= nil) and assertedTables[i] == nil) then
-      assertedTables[i] = v
+    str = str .. tab .. "->" .. tostring(i) .. " :: " .. tostring(v) .. "\n"
+    if (type(v) == "table" and (next(v) ~= nil) and assertedTables[tostring(v)] == nil) then
+      assertedTables[tostring(v)] = true
       str = str .. kernel.asserting.recusiveFormatTable(v, level + 1)  .. tab .. "\n"
     end
   end
   return str 
+end
+
+function kernel.asserting.panicHandler(msg)
+  error(tostring(msg), 0)
 end
 
 function kernel.asserting.panic(catch, ...)
@@ -85,13 +89,13 @@ function kernel.asserting.panic(catch, ...)
     table.insert(info, 1, msg)
   end
   assertedTables = {}
-  error("\n-------------- Catastrophic Derp occurred! --------------\n" ..
+  kernel.asserting.panicHandler("\n-------------- Catastrophic Derp occurred! --------------\n" ..
         "A fatal error occurred in the kernel and broke everything.\n" ..
         "Error message: " .. tostring((msg)) .. "\n" ..
         "Stack traceback: " .. tostring(stack) .. "\n" ..
         "Additional information:" ..
         "\n" .. tostring(kernel.asserting.recusiveFormatTable(info, 1)) ..
-        "----------------------- End Trace -----------------------\n", 0)
+        "----------------------- End Trace -----------------------\n")
 end
 
 function kernel.asserting.catch(msg)
@@ -373,5 +377,5 @@ if not success then
   kernel.asserting.panic(result, kernel)
 else
   local catch = kernel.asserting.catch("Kernel exited run mode")
-  kernel.asserting.panic(catch, kernel)
+  kernel.asserting.panic(result, kernel)
 end

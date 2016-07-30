@@ -196,7 +196,7 @@ function vfs.fileExists(path)
   assert(type(path) == "string", "Bad argument #1: string expected")
   local _, _, node, pathRest = getNode(vfs, path)
   if node.handle then
-    return node.handle:exists(pathRest)-- and not node.handle:isDirectory(pathRest)
+    return node.handle:exists(pathRest) and not node.handle:isDirectory(pathRest)
   end
   return false
 end
@@ -215,7 +215,7 @@ function vfs.openFile(path, options)
   assert(type(path) == "string", "Bad argument #1: string expected")
   assert(type(options) == "string", "Bad argument #2: string expected")
   local _, _, node, pathRest = getNode(vfs, path)
-  assert(vfs.pathExists(pathRest), "Error, path not found!")
+  assert(vfs.pathExists(path), "Error, path not found! " .. pathRest)
   return node.handle:openFile(pathRest, options)
 end
 
@@ -231,18 +231,14 @@ function vfs.readFile(filePath)
   return buffer
 end
 
+
+
 -- vfs file methods
 -------------------------------------------------------------------------------
 
 -------------------------------------------------------------------------------
 -- vfs module methods
 function vfs.insmod(posig)
-  --local kernel = require("kernel")
-  --local co = coroutine.create(ipc)
-  --local handle = vfs.init()
-  --local success, val = coroutine.resume(co, handle, kernel)
-  --assert(success, val)
-  --kernel.ipc.add(posig.name, co)
   return vfs
 end
 

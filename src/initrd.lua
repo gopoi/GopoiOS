@@ -44,12 +44,13 @@ function initrd.bootstrap(kernel)
   local devs = ocfs.probe()
   local dev = devs[root.handle]
   vfs.mount("/", "ocfs", dev:open())
+  require("logpanic")
   -- Setup udev
   local udev = require("udev")
   vfs.mount("/dev", "fakefs", udev)
   udev.attach(ocfs.devClass, ocfs)
   udev.refresh()
- 
+  
  
   local file = vfs.openFile("/test.txt", "r") 
   

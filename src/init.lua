@@ -52,20 +52,6 @@ function bootloader.tryLoad(address, filePath)
   return buffer
 end
 
----- Locate and map Gpu and screen
-local screen = component.list("screen")()
-local gpu = component.list("gpu")()
-local gpuEnabled = false
-local w, h
-if gpu and screen then
-  bootloader.invoke(gpu, "bind", screen)
-  w, h = bootloader.invoke(gpu, "getResolution")
-  bootloader.invoke(gpu, "setResolution", w, h)
-  bootloader.invoke(gpu, "setBackground", 0x000000)
-  bootloader.invoke(gpu, "setForeground", 0xFFFFFF)
-  bootloader.invoke(gpu, "fill", 1, 1, w, h, " ")
-  gpuEnabled = true
-end
 
 ---- Load initrd
 local reason
@@ -92,20 +78,6 @@ bootloader.kernelArgs.initrd = bootloader.initrd
 success, reason = pcall(bootloader.kernel, bootloader.kernelArgs) -- pass a table as an arg for now
 
 if not success then
-  if gpuEnabled then
-    bootloader.invoke(gpu, "setBackground", 0x000A91)
-    bootloader.invoke(gpu, "fill", 1, 1, w, h, " ")
-    local i = 1
-    reason = reason .. "\n"
-    local text = reason:gmatch("(.-)\n")
-    for line in text do
-      bootloader.invoke(gpu, "set", 1, i, line)
-      i = i + 1
-    end
-    if i == 1 then
-      bootloader.invoke(gpu, "set", 1, 1, reason)
-    end
-  end
     error(reason, 0)
 end
 computer.beep(2000, 1)
