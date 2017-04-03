@@ -60,7 +60,7 @@ function kernel.asserting.getStack()
   end
 end
 
-function kernel.asserting.recusiveFormatTable(info, level)
+function kernel.asserting.recursiveFormatTable(info, level)
   local str = ""
   local tab = ""
   for i=0, level - 2, 1 do
@@ -71,7 +71,7 @@ function kernel.asserting.recusiveFormatTable(info, level)
     str = str .. tab .. "->" .. tostring(i) .. " :: " .. tostring(v) .. "\n"
     if (type(v) == "table" and (next(v) ~= nil) and assertedTables[tostring(v)] == nil) then
       assertedTables[tostring(v)] = true
-      str = str .. kernel.asserting.recusiveFormatTable(v, level + 1)  .. tab .. "\n"
+      str = str .. kernel.asserting.recursiveFormatTable(v, level + 1)  .. tab .. "\n"
     end
   end
   return str 
@@ -94,7 +94,7 @@ function kernel.asserting.panic(catch, ...)
         "Error message: " .. tostring((msg)) .. "\n" ..
         "Stack traceback: " .. tostring(stack) .. "\n" ..
         "Additional information:" ..
-        "\n" .. tostring(kernel.asserting.recusiveFormatTable(info, 1)) ..
+        "\n" .. tostring(kernel.asserting.recursiveFormatTable(info, 1)) ..
         "----------------------- End Trace -----------------------\n")
 end
 
