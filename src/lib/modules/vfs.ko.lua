@@ -230,9 +230,6 @@ function vfs.readFile(filePath)
   handle:close()
   return buffer
 end
-
-
-
 -- vfs file methods
 -------------------------------------------------------------------------------
 

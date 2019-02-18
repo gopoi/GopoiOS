@@ -49,7 +49,7 @@ end
 -------------------------------------------------------------------------------
 
 -------------------------------------------------------------------------------
--- ocfs Device file actions : This part drive file itself (/dev/fs/fs1)
+-- ocfs Device file actions : This part drive file itself (/dev/fs/fs1)    Block device
 function ocfsdev:close()
   self.isOpened = false
 end
@@ -119,7 +119,7 @@ end
 -------------------------------------------------------------------------------
 
 -------------------------------------------------------------------------------
--- ocfs Driver actions
+-- ocfs Driver actions  Filesystem
 function ocfsdrv:openFile(path, options)
   local fh = setmetatable({__gc = ocfsfile.close}, ocfsfile)
   fh.fd = self.dev:ioctl("open", path, options)
@@ -211,7 +211,7 @@ function ocfs.probe()
     if ocfs.devices[drive] then
       devices[drive] = ocfs.devices[drive]
     else
-      local dev = setmetatable({__gc = ocfsdev.close}, ocfsdev)
+      local dev = setmetatable({__gc = ocfsdev.close}, ocfsdev) -- TODO: fix gc
       dev.opened = false
       dev.handle = drive
       devices[drive] = dev

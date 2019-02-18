@@ -64,7 +64,7 @@ end
 function initrd.boot()
   require("scheduler")
   require("fakefs")
-  require("udev")
+  --require("udev")
   
   error(computer.freeMemory())
   return "scheduler", "start", table.pack()

@@ -1,0 +1,272 @@
+
+-------------- Catastrophic Derp occurred! --------------
+A fatal error occurred in the kernel and broke everything.
+Error message: Initrd:57: aa
+Stack traceback: 
+ >[C]: in function 'error'
+ >Initrd:57: in field 'bootstrap'
+ >vmgopoi:336: in function <vmgopoi:319>
+ >[C]: in function 'xpcall'
+ >machine:751: in global 'xpcall'
+ >vmgopoi:370: in main chunk
+ >[C]: in function 'pcall'
+ >machine:702: in global 'pcall'
+ >init:78: in local 'init'
+ >bios:61: in main chunk
+Additional information:
+|->1 :: table: 000000002F0846D0
+| |->modules :: table: 000000002F084CD0
+| | |->rmmod :: function: 000000005B0D7990
+| | |->insmod :: function: 000000002F084490
+| | |->isLoaded :: function: 000000002F083E90
+| | |->get :: function: 000000002F0844D0
+| | |->loaded :: table: 000000002F084290
+| | | |->logpanic :: table: 000000002F083CD0
+| | | | |->handle :: table: 000000002F081E10
+| | | | | |->oldPanic :: function: 000000005B0D7780
+| | | | | |->panicHandler :: function: 000000002F083490
+| | | | | |->insmod :: function: 000000002F083810
+| | | | |
+| | | | |->posig :: table: 000000002F082210
+| | | | | |->posigVersion :: 0.0.1
+| | | | | |->version :: 0.0.1
+| | | | | |->package :: net.gopoi.gopoios
+| | | | | |->name :: logpanic
+| | | | | |->date :: 2015-04-25
+| | | | | |->arch :: portable
+| | | | | |->fullname :: gopoiOSPanicLogging
+| | | | | |->author :: ShanB.
+| | | | |
+| | | |
+| | | |->fakefs :: table: 000000005C91B090
+| | | | |->handle :: table: 000000005C91A4D0
+| | | | | |->__index :: table: 000000005C91A4D0
+| | | | | |->new :: function: 000000005C91AF10
+| | | | | |->vfsType :: fakefs
+| | | | | |->insmod :: function: 000000005C91A550
+| | | | |
+| | | | |->posig :: table: 000000005C919390
+| | | | | |->posigVersion :: 0.0.1
+| | | | | |->version :: 0.0.1
+| | | | | |->package :: net.gopoi.gopoios
+| | | | | |->name :: fakefs
+| | | | | |->date :: 2015-04-25
+| | | | | |->arch :: portable
+| | | | | |->fullname :: gopoiOSFakeFilesystem
+| | | | | |->author :: ShanB.
+| | | | |
+| | | |
+| | | |->vfs :: table: 000000005C7BA4D0
+| | | | |->handle :: table: 000000005C7BA710
+| | | | | |->attach :: function: 000000005C7BB010
+| | | | | |->formatPath :: function: 000000005C7BA690
+| | | | | |->insmod :: function: 000000005B100630
+| | | | | |->segments :: function: 000000005B100930
+| | | | | |->mount :: function: 0000000027F55460
+| | | | | |->pathExists :: function: 000000005C7BAED0
+| | | | | |->openFile :: function: 000000005C7BAF10
+| | | | | |->readFile :: function: 000000005C7BB190
+| | | | | |->fileExists :: function: 000000005C7BAE50
+| | | | | |->bare :: table: 000000005C7BAE90
+| | | | | | |->require :: function: 000000005B0D76F0
+| | | | | |
+| | | | | |->drivers :: table: 000000005C7BA490
+| | | | | | |->fakefs :: table: 000000005C91A4D0
+| | | | | | |->ocfs :: table: 000000005C7C5510
+| | | | | | | |->insmod :: function: 000000005C7C55D0
+| | | | | | | |->__index :: table: 000000005C7C5510
+| | | | | | | |->new :: function: 000000005C7C5F10
+| | | | | | | |->partType :: ocfs
+| | | | | | | |->devices :: table: 000000005C91BE90
+| | | | | | | | |->04e36dd0-db93-4d3e-ad98-cafeecb3a1b5 :: table: 000000005C7C5F90
+| | | | | | | | | |->opened :: false
+| | | | | | | | | |->__gc :: function: 000000005B0546B0
+| | | | | | | | | |->handle :: 04e36dd0-db93-4d3e-ad98-cafeecb3a1b5
+| | | | | | | | | |->isOpened :: true
+| | | | | | | | |
+| | | | | | | | |->40d5fc21-df8b-4d40-8530-f152b00f171d :: table: 000000005C7C5610
+| | | | | | | | | |->__gc :: function: 000000005B0546B0
+| | | | | | | | | |->handle :: 40d5fc21-df8b-4d40-8530-f152b00f171d
+| | | | | | | | | |->opened :: false
+| | | | | | | | |
+| | | | | | | |
+| | | | | | | |->devClass :: fs
+| | | | | | | |->probe :: function: 0000000027F3FBB0
+| | | | | | | |->devType :: filesystem
+| | | | | | |
+| | | | | |
+| | | | | |->rootNode :: table: 000000005C7BA810
+| | | | | | |->parent :: table: 000000005C7BA810
+| | | | | | |->name :: 
+| | | | | | |->handle :: table: 000000005C7C6090
+| | | | | | | |->dev :: table: 000000005C7C5F90
+| | | | | | |
+| | | | | | |->child :: table: 000000005C7BA890
+| | | | | | | |->dev :: table: 000000005C91A910
+| | | | | | | | |->parent :: table: 000000005C7BA810
+| | | | | | | | |->name :: dev
+| | | | | | | | |->handle :: table: 000000005C91A750
+| | | | | | | | | |->dev :: table: 000000002F070F90
+| | | | | | | | | | |->ioctl :: function: 000000002F071090
+| | | | | | | | | | |->createNode :: function: 000000002F0710D0
+| | | | | | | | | | |->insmod :: function: 000000002F071250
+| | | | | | | | | | |->attach :: function: 000000002F071310
+| | | | | | | | | | |->rootNode :: table: 000000005C91AB10
+| | | | | | | | | | | |->childs :: table: 000000005C91ABD0
+| | | | | | | | | | | | |->fs :: table: 000000005C91B990
+| | | | | | | | | | | | | |->type :: dir
+| | | | | | | | | | | | | |->name :: fs
+| | | | | | | | | | | | | |->childs :: table: 000000005C91B5D0
+| | | | | | | | | | | | | | |->04e36dd0-db93-4d3e-ad98-cafeecb3a1b5 :: table: 000000005C91B9D0
+| | | | | | | | | | | | | | | |->type :: file
+| | | | | | | | | | | | | | | |->dev :: table: 000000005C7C5F90
+| | | | | | | | | | | | | | | |->name :: 04e36dd0-db93-4d3e-ad98-cafeecb3a1b5
+| | | | | | | | | | | | | | |
+| | | | | | | | | | | | | | |->40d5fc21-df8b-4d40-8530-f152b00f171d :: table: 000000005C91BAD0
+| | | | | | | | | | | | | | | |->type :: file
+| | | | | | | | | | | | | | | |->dev :: table: 000000005C7C5610
+| | | | | | | | | | | | | | | |->name :: 40d5fc21-df8b-4d40-8530-f152b00f171d
+| | | | | | | | | | | | | | |
+| | | | | | | | | | | | | |
+| | | | | | | | | | | | |
+| | | | | | | | | | | |
+| | | | | | | | | | |
+| | | | | | | | | | |->refresh :: function: 000000002F071210
+| | | | | | | | | | |->devProbersC :: table: 000000002F071790
+| | | | | | | | | | | |->fs :: table: 000000005C91AC50
+| | | | | | | | | | | | |->1 :: table: 000000005C7C5510
+| | | | | | | | | | | |
+| | | | | | | | | | |
+| | | | | | | | | |
+| | | | | | | | |
+| | | | | | | | |->child :: table: 000000005C91AA50
+| | | | | | | |
+| | | | | | |
+| | | | | |
+| | | | |
+| | | | |->posig :: table: 000000005C7B9D50
+| | | | | |->posigVersion :: 0.0.1
+| | | | | |->arch :: portable
+| | | | | |->package :: net.gopoi.gopoios
+| | | | | |->name :: vfs
+| | | | | |->date :: 2015-04-26
+| | | | | |->credit :: OpenComputersopenOSFilesystem
+| | | | | |->fullname :: gopoiOSvirtualfilesystemmodule
+| | | | | |->author :: ShanB.
+| | | | |
+| | | |
+| | | |->udev :: table: 000000002F071C10
+| | | | |->handle :: table: 000000002F070F90
+| | | | |->posig :: table: 000000002F071710
+| | | | | |->posigVersion :: 0.0.1
+| | | | | |->version :: 0.0.1
+| | | | | |->package :: net.gopoi.gopoios
+| | | | | |->name :: udev
+| | | | | |->date :: 2015-04-25
+| | | | | |->arch :: portable
+| | | | | |->fullname :: gopoiOSKernelhelpers
+| | | | | |->author :: ShanB.
+| | | | |
+| | | |
+| | | |->kernel :: table: 000000002F084410
+| | | | |->handle :: table: 000000002F0846D0
+| | | |
+| | | |->ocfs :: table: 000000005C7C6190
+| | | | |->handle :: table: 000000005C7C5510
+| | | | |->posig :: table: 000000005C7C4410
+| | | | | |->posigVersion :: 0.0.1
+| | | | | |->package :: net.gopoi.gopoios
+| | | | | |->name :: ocfs
+| | | | | |->date :: 2015-04-26
+| | | | | |->arch :: opencomputers
+| | | | | |->fullname :: OpenComputersFilesystemDriver
+| | | | | |->author :: ShanB.
+| | | | |
+| | | |
+| | |
+| | |->getPosig :: function: 000000002F084750
+| |
+| |->settings :: table: 000000002F084B50
+| | |->modulesPath :: table: 000000002F08EBD0
+| | | |->1 :: /lib/modules/
+| | | |->2 :: /lib/modules/drv/oc/
+| | |
+| |
+| |->ipc :: table: 000000002F083F90
+| | |->coroutines :: table: 000000002F0843D0
+| | |->remove :: function: 000000002F084B90
+| | |->exists :: function: 000000005B0D7A20
+| | |->sendk :: function: 000000002F084210
+| | |->add :: function: 000000002F0848D0
+| | |->send :: function: 000000005B0D7510
+| |
+| |->logging :: table: 000000002F084A50
+| | |->logs :: table: 000000002F084690
+| | |->dinfo :: function: 000000005B0D7870
+| | |->derr :: function: 000000005B0D71B0
+| | |->dcrit :: function: 000000005B0D75D0
+| | |->dwarn :: function: 000000005B0D74B0
+| | |->log :: function: 000000005B0D7420
+| |
+| |->posig :: table: 000000002F084510
+| | |->parseHeader :: function: 000000002F084090
+| | |->utils :: table: 000000002F083DD0
+| | | |->getInfo :: function: 000000005B0D7690
+| | | |->checkHeader :: function: 000000005B0D7BD0
+| | | |->formatHeader :: function: 000000005B0D7450
+| | | |->getHeader :: function: 000000005B0D7750
+| | |
+| | |->isCompatible :: function: 000000005B0D7B10
+| |
+| |->exec :: table: 000000002F083E50
+| | |->load :: function: 000000002F084590
+| | |->exec :: function: 000000005B0D7930
+| |
+| |->utils :: table: 000000002F084710
+| | |->uptime :: function: 000000005B0D7630
+| | |->setRunLevel :: function: 000000002F083F50
+| | |->getSetting :: function: 000000005B0D7B40
+| | |->setSetting :: function: 000000005B0D7660
+| |
+| |->bare :: table: 000000002F084250
+| | |->load :: function: 000000002F07C910
+| |
+| |->asserting :: table: 000000002F084990
+| | |->panic :: function: 000000002F084450
+| | |->catch :: function: 000000005B0D78A0
+| | |->panicHandler :: function: 000000002F083490
+| | |->getStack :: function: 000000005B0D73F0
+| | |->recusiveFormatTable :: function: 000000002F084190
+| |
+| |->base :: table: 000000002F084390
+| | |->binmode :: t
+| | |->run :: function: 000000002F083E10
+| | |->posig :: table: 000000005C7D1890
+| | | |->posigVersion :: 0.0.1
+| | | |->version :: 0.0.1
+| | | |->package :: net.gopoi.gopoios
+| | | |->name :: vmgopoi
+| | | |->date :: 2015-04-25
+| | | |->arch :: portable
+| | | |->fullname :: gopoiOSkernel
+| | | |->author :: ShanB.
+| | |
+| | |->arch :: opencomputers
+| | |->root :: table: 000000002F080250
+| | | |->handle :: 04e36dd0-db93-4d3e-ad98-cafeecb3a1b5
+| | | |->type :: filesystem
+| | |
+| | |->initrd :: table: 000000002F08E650
+| | | |->fsD :: ocfs
+| | | |->boot :: function: 000000005AAB89B0
+| | | |->modulesPath :: table: 000000002F08EBD0
+| | | |->bootstrap :: function: 000000002F08EC10
+| | | |->vfs :: vfs
+| | | |->tryLoad :: function: 000000005AAB8D70
+| | |
+| | |->boot :: function: 000000002F084850
+| | |->runlevel :: 0
+| |
+|
+|->n :: 1
+----------------------- End Trace -----------------------

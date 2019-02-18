@@ -1,0 +1,73 @@
+File:
+- read(count)         : data
+- write(buffer)       :
+- seek(whence, offset): index
+- ioctl(action, ...)  :
+- flush()             :
+- close()             :
+ioctls:
+- "getType" return "file"
+
+Char device:
+- read(count)         : data
+- write(buffer)       :
+- seek(whence, offset): index
+- ioctl(action, ...)  :
+- flush()             :
+- close()             :
+ioctls:
+- "getType" : return "chardev"
+
+Block device:
+- read(count)         : data
+- write(buffer)       :
+- seek(whence, offset): index
+- ioctl(action, ...)  :
+- flush()             :
+- close()             :
+ioctls:
+- "getType"                  : return "blockdev"
+- "getSectorSize"            : return sector size in bytes
+- "getCapacity"              : return capacity in bytes
+- "getPlatterCount"          : return number of platters
+- "readSector"[number]       : return data 
+- "writeSector"[number, val] : 
+- "setLabel"[value]          : 
+- "getLabel"                 : return the label
+
+FS device:
+- read(count)         : fsdevType
+- write(buffer)       : error
+- seek(whence, offset): error
+- ioctl(action, ...)  : 
+- flush()             : 
+- close()             :
+ioctls:
+- "getType"           : return "fsdev"
+- "spaceUsed"         : return space used in bytes
+- "spaceTotal"        : return capacity in bytes
+- "setLabel"[value]   : 
+- "getLabel"          : return the label
+- "isReadOnly"        : return bool if fs is ReadOnly
+- "makeDirectory"     : 
+- "isDirectory"
+- "list"
+- "exists"
+- "lastModified"
+- "rename"
+- "remove"
+- "size"
+- "open"
+- "write"
+- "read"
+- "seek"
+- "close"
+
+GPU device:
+- read(count)         : 
+- write(buffer)       : error
+- seek(whence, offset): error
+- ioctl(action, ...)  : 
+- flush()             : 
+- close()             :
+
